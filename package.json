@@ -1,0 +1,72 @@
+{
+  "name": "@zakkster/lite-tools",
+  "author": "Zahary Shinikchiev <shinikchiev@yahoo.com>",
+  "version": "1.0.1",
+  "description": "The standard library for high-performance web presentation — GSAP-level scroll reveals, Framer-level physics, Three.js-level particles, Tailwind-level color generation. Zero-GC, deterministic, tree-shakeable.",
+  "type": "module",
+  "main": "lite-tools.js",
+  "types": "lite-tools.d.ts",
+  "exports": {
+    ".": {
+      "types": "./LiteEngine.d.ts",
+      "import": "./LiteEngine.js",
+      "default": "./LiteEngine.js"
+    }
+  },
+  "files": [
+    "LiteEngine.js",
+    "LiteEngine.d.ts",
+    "README.md"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@zakkster/lite-fx": "^1.0.0",
+    "@zakkster/lite-gen": "^1.0.0",
+    "@zakkster/lite-ui": "^1.0.0",
+    "@zakkster/lite-soa-particle-engine": "^1.0.0",
+    "@zakkster/lite-particles": "^1.0.0",
+    "@zakkster/lite-smart-observer": "^1.0.0",
+    "@zakkster/lite-theme-gen": "^1.0.0",
+    "@zakkster/lite-random": "^1.0.0",
+    "@zakkster/lite-color": "^1.0.0",
+    "@zakkster/lite-lerp": "^1.0.0",
+    "lite-object-pool": "^1.0.0",
+    "lite-viewport": "^1.0.0",
+    "lite-ticker": "^1.0.0",
+    "lite-fsm": "^1.0.0",
+    "lite-fps-meter": "^1.0.0",
+    "lite-pointer-tracker": "^1.0.0",
+    "lite-asset-loader": "^1.0.0",
+    "lite-audio-manager": "^1.0.0"
+  },
+  "homepage": "https://github.com/PeshoVurtoleta/-zakkster-lite-tools#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PeshoVurtoleta/-zakkster-lite-tools.git"
+  },
+  "bugs": {
+    "url": "https://github.com/PeshoVurtoleta/-zakkster-lite-tools/issues",
+    "email": "shinikchiev@yahoo.com"
+  },
+  "keywords": [
+    "toolkit",
+    "micro-library",
+    "zero-gc",
+    "deterministic",
+    "oklch",
+    "particles",
+    "scroll-reveal",
+    "parallax",
+    "spring-physics",
+    "magnetic",
+    "generative-art",
+    "noise",
+    "flow-field",
+    "theme-generator",
+    "vfx",
+    "game-engine",
+    "canvas",
+    "tree-shakeable",
+    "recipes"
+  ]
+}
