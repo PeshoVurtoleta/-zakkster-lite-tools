@@ -57,8 +57,6 @@ export {Ticker} from 'lite-ticker';
 export {FSM} from 'lite-fsm';
 export {FPSMeter} from 'lite-fps-meter';
 export {PointerTracker} from 'lite-pointer-tracker';
-export {AssetLoader} from 'lite-asset-loader';
-export {AudioManager, audioManager} from 'lite-audio-manager';
 
 // ═══════════════════════════════════════════════════════════
 //  INTERNAL IMPORTS FOR RECIPES
