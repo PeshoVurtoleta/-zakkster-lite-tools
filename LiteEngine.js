@@ -53,7 +53,7 @@ export {
 } from '@zakkster/lite-ui';
 export {generateTheme, toCssVariables, createThemeCss} from '@zakkster/lite-theme-gen';
 export {Viewport} from 'lite-viewport';
-export {Ticker} from 'lite-ticker';
+export {Ticker} from '@zakkster/lite-ticker';
 export {FSM} from 'lite-fsm';
 export {FPSMeter} from 'lite-fps-meter';
 export {PointerTracker} from 'lite-pointer-tracker';
