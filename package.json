@@ -1,7 +1,7 @@
 {
   "name": "@zakkster/lite-tools",
   "author": "Zahary Shinikchiev <shinikchiev@yahoo.com>",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "The standard library for high-performance web presentation — GSAP-level scroll reveals, Framer-level physics, Three.js-level particles, Tailwind-level color generation. Zero-GC, deterministic, tree-shakeable.",
   "type": "module",
   "main": "LiteEngine.js",
@@ -37,13 +37,13 @@
     "lite-fps-meter": "^1.0.0",
     "lite-pointer-tracker": "^1.0.0"
   },
-  "homepage": "https://github.com/PeshoVurtoleta/-zakkster-lite-tools#readme",
+  "homepage": "https://github.com/PeshoVurtoleta/lite-tools#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/PeshoVurtoleta/-zakkster-lite-tools.git"
+    "url": "git+https://github.com/PeshoVurtoleta/lite-tools.git"
   },
   "bugs": {
-    "url": "https://github.com/PeshoVurtoleta/-zakkster-lite-tools/issues",
+    "url": "https://github.com/PeshoVurtoleta/lite-tools/issues",
     "email": "shinikchiev@yahoo.com"
   },
   "keywords": [
