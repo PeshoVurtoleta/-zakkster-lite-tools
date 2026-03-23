@@ -1,7 +1,7 @@
 {
   "name": "@zakkster/lite-tools",
   "author": "Zahary Shinikchiev <shinikchiev@yahoo.com>",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "The standard library for high-performance web presentation — GSAP-level scroll reveals, Framer-level physics, Three.js-level particles, Tailwind-level color generation. Zero-GC, deterministic, tree-shakeable.",
   "type": "module",
   "main": "LiteEngine.js",
@@ -16,6 +16,7 @@
   "files": [
     "LiteEngine.js",
     "LiteEngine.d.ts",
+    "llms.txt",
     "README.md"
   ],
   "license": "MIT",
