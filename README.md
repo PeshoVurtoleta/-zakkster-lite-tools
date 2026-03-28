@@ -418,7 +418,7 @@ hud.update(dt);
 console.log(hud.getScore()); // cumulative
 ```
 
-**Composes:** `BmFont` + `easeOutCubic` + `easeInOutCubic` + `createId()` + `Random`
+**Composes:** `BitmapFont` + `easeOutCubic` + `easeInOutCubic` + `liteId()` + `Random`
 
 </details>
 
@@ -442,7 +442,7 @@ world.render(dt);
 world.reseed(9999);
 ```
 
-**Composes:** `Noise.fbm2()` + `Gradient.at()` + `Camera` (deadzone + smoothing) + `toCssOklch()`
+**Composes:** `Noise.fbm2()` + `Gradient.at()` + `CinematicCamera` (deadzone + smoothing) + `toCssOklch()`
 
 </details>
 
@@ -467,7 +467,7 @@ dungeon.spatial.insert(enemy, enemy.x, enemy.y, 8, 8);
 const nearby = dungeon.spatial.query(player.x - 64, player.y - 64, 128, 128);
 ```
 
-**Composes:** `Random` + `SpatialHash` + `PathFinder`
+**Composes:** `Random` + `SpatialGrid` + `Pathfinder`
 
 </details>
 
@@ -538,7 +538,7 @@ boids.agents.forEach(a => {
 });
 ```
 
-**Composes:** `SpatialHash` (O(1) neighbor lookup) + separation/alignment/cohesion forces + `Random`
+**Composes:** `SpatialGrid` (O(1) neighbor lookup) + separation/alignment/cohesion forces + `Random`
 
 </details>
 
@@ -558,7 +558,7 @@ carousel.goTo(2);
 console.log(carousel.getCurrentIndex()); // 2
 ```
 
-**Composes:** `GestureRecognizer` (pan + panEnd with velocity) + `Timeline` + `easeOutCubic`
+**Composes:** `GestureTracker` (pan + panEnd with velocity) + `createTimeline` + `easeOutCubic`
 
 </details>
 
@@ -577,7 +577,7 @@ const show = Recipes.timelineShowcase('.feature-card', overlayCanvas, {
 show.play(); // stagger in → confetti burst
 ```
 
-**Composes:** `Timeline` + `easeOutBack` (overshoot entrance) + `confetti()` (fire-and-forget)
+**Composes:** `createTimeline` + `easeOutBack` (overshoot entrance) + `confetti()` (fire-and-forget)
 
 </details>
 

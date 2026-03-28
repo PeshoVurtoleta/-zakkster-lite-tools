@@ -95,29 +95,29 @@ export {
     easeInOutBounce,
     linear
 } from '@zakkster/lite-ease';
-export {Tween} from '@zakkster/lite-tween';
-export {SpringStandalone, SpringPool} from '@zakkster/lite-spring';
+export {TweenManager} from '@zakkster/lite-tween';
+export {Spring as SpringDamped, SpringPool} from '@zakkster/lite-spring';
 export {Gradient} from '@zakkster/lite-gradient';
-export {Noise} from '@zakkster/lite-noise';
-export {Timeline} from '@zakkster/lite-timeline';
+export {seedNoise, simplex2, simplex3, fbm2, fbm3, curl2} from '@zakkster/lite-noise';
+export {createTimeline} from '@zakkster/lite-timeline';
 
 // Interaction + utility
-export {GestureRecognizer} from '@zakkster/lite-gesture';
+export {GestureTracker} from '@zakkster/lite-gesture';
 export {confetti, createConfetti} from '@zakkster/lite-confetti';
-export {createId, createIdGenerator} from '@zakkster/lite-id';
+export {liteId} from '@zakkster/lite-id';
 export {Vec2} from '@zakkster/lite-vec';
 export {
     Seek, Flee, Wander, Arrive, Pursuit, Evade, PathFollow, Separation, Alignment, Cohesion, Flock
 }from '@zakkster/lite-steer';
 
 // Game layer
-export {BmFont} from '@zakkster/lite-bmfont';
-export {InputPoller} from '@zakkster/lite-gamepad';
-export {Camera} from '@zakkster/lite-camera';
-export {SpatialHash} from '@zakkster/lite-spatial';
+export {BitmapFont} from '@zakkster/lite-bmfont';
+export {InputVectorizer} from '@zakkster/lite-gamepad';
+export {CinematicCamera} from '@zakkster/lite-camera';
+export {SpatialGrid} from '@zakkster/lite-spatial';
 export {testPolygonPolygon, translatePoly, rotatePoly} from '@zakkster/lite-sat';
-export {PathFinder} from '@zakkster/lite-path';
-export {ShadowCaster} from '@zakkster/lite-shadow';
+export {Pathfinder} from '@zakkster/lite-path';
+export {VisibilityCaster} from '@zakkster/lite-shadow';
 export {WFC} from '@zakkster/lite-wfc';
 export {AudioPool} from '@zakkster/lite-audio-pool';
 
@@ -160,21 +160,21 @@ import {PointerTracker} from 'lite-pointer-tracker';
 
 // v2.0 internal imports for new recipes
 import {easeOutCubic, easeOutElastic, easeInOutCubic, easeOutBounce, easeOutBack} from '@zakkster/lite-ease';
-import {Tween} from '@zakkster/lite-tween';
+import {TweenManager} from '@zakkster/lite-tween';
 import {SpringPool} from '@zakkster/lite-spring';
 import {Gradient} from '@zakkster/lite-gradient';
-import {Noise} from '@zakkster/lite-noise';
-import {Timeline} from '@zakkster/lite-timeline';
-import {GestureRecognizer} from '@zakkster/lite-gesture';
+import {seedNoise, fbm2} from '@zakkster/lite-noise';
+import {createTimeline} from '@zakkster/lite-timeline';
+import {GestureTracker} from '@zakkster/lite-gesture';
 import {confetti as confettiFn} from '@zakkster/lite-confetti';
-import {createId} from '@zakkster/lite-id';
+import {liteId} from '@zakkster/lite-id';
 import {Vec2} from '@zakkster/lite-vec';
 import {Flock, Wander, Separation, Alignment, Cohesion} from '@zakkster/lite-steer';
-import {BmFont} from '@zakkster/lite-bmfont';
-import {InputPoller} from '@zakkster/lite-gamepad';
-import {Camera} from '@zakkster/lite-camera';
-import {SpatialHash} from '@zakkster/lite-spatial';
-import {PathFinder} from '@zakkster/lite-path';
+import {BitmapFont} from '@zakkster/lite-bmfont';
+import {InputVectorizer} from '@zakkster/lite-gamepad';
+import {CinematicCamera} from '@zakkster/lite-camera';
+import {SpatialGrid} from '@zakkster/lite-spatial';
+import {Pathfinder} from '@zakkster/lite-path';
 import {WFC} from '@zakkster/lite-wfc';
 import {AudioPool} from '@zakkster/lite-audio-pool';
 import {FireworksEngine} from '@zakkster/lite-fireworks';
@@ -967,13 +967,13 @@ export const Recipes = {
     retroArcadeText(ctx, fontImage, fontData, options = {}) {
         const {seed = Date.now(), maxNumbers = 30} = options;
         const rng = new Random(seed);
-        const font = new BmFont(fontImage, fontData);
+        const font = new BitmapFont(fontImage, fontData);
         const numbers = [];
         let score = 0;
 
         function addDamage(x, y, value) {
             numbers.push({
-                id: createId(), x, y, value: String(value),
+                id: liteId(), x, y, value: String(value),
                 startY: y, t: 0, life: 1.2, alpha: 1,
             });
             score += value;
@@ -1015,8 +1015,8 @@ export const Recipes = {
         const {seed = 42, cellSize = 8, scale = 0.02} = options;
         const ctx = canvas.getContext('2d');
         const rng = new Random(seed);
-        const noise = new Noise(seed);
-        const cam = new Camera({smoothing: 0.08, deadzone: 40});
+        seedNoise(seed);
+        const cam = new CinematicCamera({smoothing: 0.08, deadzone: 40});
         const gradient = new Gradient([
             {l: 0.2, c: 0.15, h: 220}, // deep water
             {l: 0.4, c: 0.2, h: 200},  // shallow
@@ -1040,7 +1040,7 @@ export const Recipes = {
                 for (let c = 0; c < cols; c++) {
                     const wx = (offX + c) * scale;
                     const wy = (offY + r) * scale;
-                    const n = noise.fbm2(wx, wy, 5, 2.0, 0.5) * 0.5 + 0.5;
+                    const n = fbm2(wx, wy, 5, 2.0, 0.5) * 0.5 + 0.5;
                     const color = gradient.at(clamp(n, 0, 1));
                     ctx.fillStyle = toCssOklch(color);
                     ctx.fillRect((c - (camX / cellSize - offX)) * cellSize, (r - (camY / cellSize - offY)) * cellSize, cellSize + 1, cellSize + 1);
@@ -1054,7 +1054,7 @@ export const Recipes = {
                 target = {x, y};
             },
             reseed(s) {
-                noise.seed(s);
+                seedNoise(s);
             },
             destroy() {
             },
@@ -1069,7 +1069,7 @@ export const Recipes = {
         const {width = 32, height = 32, seed = Date.now()} = options;
         const rng = new Random(seed);
         const grid = new Uint8Array(width * height); // 0=wall, 1=floor
-        const spatial = new SpatialHash(width * 4, height * 4, 32);
+        const spatial = new SpatialGrid(width * 4, height * 4, 32);
 
         // Simple noise-based dungeon
         for (let y = 0; y < height; y++) {
@@ -1092,7 +1092,7 @@ export const Recipes = {
         }
 
         function findPath(sx, sy, ex, ey) {
-            const finder = new PathFinder(width, height, (x, y) => isWalkable(x, y));
+            const finder = new Pathfinder(width, height, (x, y) => isWalkable(x, y));
             return finder.find(sx, sy, ex, ey);
         }
 
@@ -1195,7 +1195,7 @@ export const Recipes = {
         const ctx = canvas.getContext('2d');
         const rng = new Random(seed);
         const w = canvas.width, h = canvas.height;
-        const spatial = new SpatialHash(w, h, 64);
+        const spatial = new SpatialGrid(w, h, 64);
         const agents = [];
 
         for (let i = 0; i < count; i++) {
@@ -1284,7 +1284,7 @@ export const Recipes = {
             }, destroy() {
             }
         };
-        const gesture = new GestureRecognizer(el);
+        const gesture = new GestureTracker(el);
         let currentIndex = 0, offsetX = 0;
         const slideWidth = el.clientWidth || 300;
 
@@ -1292,7 +1292,7 @@ export const Recipes = {
             currentIndex = clamp(idx, 0, slides.length - 1);
             const targetX = -currentIndex * slideWidth;
             const startX = offsetX;
-            const tl = new Timeline();
+            const tl = createTimeline();
             tl.add({
                 duration: 400, onUpdate(t) {
                     offsetX = startX + (targetX - startX) * easeOutCubic(t);
@@ -1335,7 +1335,7 @@ export const Recipes = {
     timelineShowcase(elements, overlayCanvas, options = {}) {
         const {brandColor = {l: 0.6, c: 0.25, h: 280}} = options;
         const els = typeof elements === 'string' ? document.querySelectorAll(elements) : elements;
-        const tl = new Timeline({loop: false});
+        const tl = createTimeline({loop: false});
 
         // Stagger each element in with eased opacity + translateY
         let offset = 0;
@@ -1384,7 +1384,7 @@ export const Recipes = {
         const ctx = canvas.getContext('2d');
         const sparks = new SparkEngine(maxSparks);
         const fireworks = new FireworksEngine(maxFireworks);
-        const cam = new Camera({smoothing: 0.05});
+        const cam = new CinematicCamera({smoothing: 0.05});
         let w = canvas.width, h = canvas.height;
 
         function explodeAt(x, y) {

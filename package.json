@@ -1,7 +1,7 @@
 {
   "name": "@zakkster/lite-tools",
   "author": "Zahary Shinikchiev <shinikchiev@yahoo.com>",
-  "version": "2.0.2",
+  "version": "2.0.13",
   "sideEffects": false,
   "description": "The standard library for high-performance web presentation — 45+ micro-libraries, 24 recipes, zero-GC, deterministic, tree-shakeable.",
   "type": "module",

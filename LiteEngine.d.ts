@@ -96,27 +96,27 @@ export {PointerTracker} from 'lite-pointer-tracker';
 
 // Animation primitives
 export { easeInQuad, easeOutQuad, easeInOutQuad, easeInCubic, easeOutCubic, easeInOutCubic, easeInQuart, easeOutQuart, easeInOutQuart, easeInQuint, easeOutQuint, easeInOutQuint, easeInSine, easeOutSine, easeInOutSine, easeInExpo, easeOutExpo, easeInOutExpo, easeInCirc, easeOutCirc, easeInOutCirc, easeInBack, easeOutBack, easeInOutBack, easeInElastic, easeOutElastic, easeInOutElastic, easeInBounce, easeOutBounce, easeInOutBounce, linear } from '@zakkster/lite-ease';
-export { Tween } from '@zakkster/lite-tween';
-export { SpringStandalone, SpringPool } from '@zakkster/lite-spring';
+export { TweenManager } from '@zakkster/lite-tween';
+export { Spring as SpringDamped, SpringPool } from '@zakkster/lite-spring';
 export { Gradient } from '@zakkster/lite-gradient';
-export { Noise } from '@zakkster/lite-noise';
-export { Timeline } from '@zakkster/lite-timeline';
+export { seedNoise, simplex2, simplex3, fbm2, fbm3, curl2 } from '@zakkster/lite-noise';
+export { createTimeline } from '@zakkster/lite-timeline';
 
 // Interaction + utility
-export { GestureRecognizer } from '@zakkster/lite-gesture';
+export { GestureTracker } from '@zakkster/lite-gesture';
 export { confetti, createConfetti } from '@zakkster/lite-confetti';
-export { createId, createIdGenerator } from '@zakkster/lite-id';
+export { liteId } from '@zakkster/lite-id';
 export { Vec2 } from '@zakkster/lite-vec';
 export { Seek, Flee, Wander, Arrive, Pursuit, Evade, PathFollow, Separation, Alignment, Cohesion, Flock } from '@zakkster/lite-steer';
 
 // Game layer
-export { BmFont } from '@zakkster/lite-bmfont';
-export { InputPoller } from '@zakkster/lite-gamepad';
-export { Camera } from '@zakkster/lite-camera';
-export { SpatialHash } from '@zakkster/lite-spatial';
+export { BitmapFont } from '@zakkster/lite-bmfont';
+export { InputVectorizer } from '@zakkster/lite-gamepad';
+export { CinematicCamera } from '@zakkster/lite-camera';
+export { SpatialGrid } from '@zakkster/lite-spatial';
 export { testPolygonPolygon, translatePoly, rotatePoly } from '@zakkster/lite-sat';
-export { PathFinder } from '@zakkster/lite-path';
-export { ShadowCaster } from '@zakkster/lite-shadow';
+export { Pathfinder } from '@zakkster/lite-path';
+export { VisibilityCaster } from '@zakkster/lite-shadow';
 export { WFC } from '@zakkster/lite-wfc';
 export { AudioPool } from '@zakkster/lite-audio-pool';
 
@@ -145,17 +145,17 @@ import type {Viewport} from 'lite-viewport';
 import type {FSM} from 'lite-states';
 import type {FPSMeter} from 'lite-fps-meter';
 import type {PointerTracker} from 'lite-pointer-tracker';
-import type {BmFont} from '@zakkster/lite-bmfont';
-import type {Camera} from '@zakkster/lite-camera';
-import type {SpatialHash} from '@zakkster/lite-spatial';
+import type {BitmapFont} from '@zakkster/lite-bmfont';
+import type {CinematicCamera} from '@zakkster/lite-camera';
+import type {SpatialGrid} from '@zakkster/lite-spatial';
 import type {EmberEngine} from '@zakkster/lite-embers';
 import type {SmokeEngine} from '@zakkster/lite-smoke';
 import type {RainEngine} from '@zakkster/lite-rain';
 import type {SnowEngine} from '@zakkster/lite-snow';
 import type {SparkEngine} from '@zakkster/lite-sparks';
 import type {FireworksEngine} from '@zakkster/lite-fireworks';
-import type {GestureRecognizer} from '@zakkster/lite-gesture';
-import type {Timeline} from '@zakkster/lite-timeline';
+import type {GestureTracker} from '@zakkster/lite-gesture';
+import type {createTimeline} from '@zakkster/lite-timeline';
 
 /** All recipes return at least a destroy() method. */
 interface Destroyable {
@@ -328,7 +328,7 @@ export interface RetroArcadeTextResult extends Destroyable {
 }
 
 export interface ProceduralWorldResult extends Destroyable {
-    cam: Camera;
+    cam: CinematicCamera;
     render(dt: number): void;
     moveTo(x: number, y: number): void;
     reseed(s?: number): void;
@@ -338,7 +338,7 @@ export interface DungeonGeneratorResult extends Destroyable {
     grid: Uint8Array;
     width: number;
     height: number;
-    spatial: SpatialHash;
+    spatial: SpatialGrid;
     isWalkable(x: number, y: number): boolean;
     findPath(sx: number, sy: number, ex: number, ey: number): Array<{ x: number; y: number }> | null;
     renderToCanvas(ctx: CanvasRenderingContext2D, tileSize?: number): void;
@@ -375,7 +375,7 @@ export interface TimelineShowcaseResult extends Destroyable {
 export interface SparkImpactResult extends Destroyable {
     sparks: SparkEngine;
     fireworks: FireworksEngine;
-    cam: Camera;
+    cam: CinematicCamera;
     explodeAt(x: number, y: number): void;
     update(dt: number): void;
 }
