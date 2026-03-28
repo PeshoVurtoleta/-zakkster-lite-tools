@@ -7,36 +7,9 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-Types-informational)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-The standard library for high-performance web presentation. **45+ micro-libraries. 24 recipes. 1 install.**
+The standard library for high-performance web presentation.
 
-**Stop installing 500KB of frameworks just to make your website feel alive.** LiteTools gives you GSAP-level scroll reveals, Framer-level magnetic physics, Three.js-level particle engines, Tailwind-level color generation, plus a complete game development layer — all in a single, tree-shakeable, zero-GC toolkit.
-
-**[→ Live Recipes Gallery Demo](https://codepen.io/Zahari-Shinikchiev/full/qEarjVG)**
-
----
-
-## Changelog
-
-### v2.0.0
-
-**28 new dependencies. 10 new recipes. Full game development layer.**
-
-**Animation Primitives:**
-`lite-ease` (31 Penner curves), `lite-tween` (SoA declarative tweening), `lite-spring` (SpringPool with per-spring stiffness/damping), `lite-gradient` (zero-GC OKLCH N-stop gradients), `lite-noise` (seeded Simplex 2D/3D + FBM + curl), `lite-timeline` (GSAP-style sequence runner)
-
-**Interaction + Utility:**
-`lite-gesture` (multi-touch pan/pinch/velocity), `lite-confetti` (deterministic OKLCH confetti, 5 shapes, reduced-motion), `lite-id` (seedable nanoid alternative), `lite-vec` (Float32Array 2D vector math), `lite-steer` (boids, seek, flee, wander, path follow)
-
-**Game Layer:**
-`lite-bmfont` (O(1) kerning bitmap font), `lite-gamepad` (unified keyboard + gamepad), `lite-camera` (cinematic 2D camera with shake), `lite-spatial` (spatial hash grid), `lite-sat` (SAT polygon collision + MTV), `lite-path` (A* pathfinding), `lite-shadow` (2D visibility casting), `lite-wfc` (wave function collapse), `lite-audio-pool` (Web Audio sprite pool)
-
-**VFX Engines (composable weather/fire system):**
-`lite-fireworks` (shell → explosion), `lite-sparks` (impact + floor bounce), `lite-rain` (Z-depth parallax streaks → splashes), `lite-snow` (drift + melt ellipses, 3 presets), `lite-embers` (localized spawn + buoyancy + death hooks), `lite-smoke` (DPI-aware radial puff buffers)
-
-**New Recipes:**
-`retroArcadeText`, `proceduralWorld`, `dungeonGenerator`, `campfireScene`, `weatherSystem`, `boidsSimulation`, `gestureCarousel`, `timelineShowcase`, `sparkImpact`, `audioReactiveVFX`
-
----
+**Stop installing 500KB of frameworks just to make your website feel alive.** LiteTools gives you GSAP-level scroll reveals, Framer-level magnetic physics, Three.js-level particle engines, and Tailwind-level color generation in a single, tree-shakeable, zero-GC toolkit.
 
 **[→ Live Recipes Gallery Demo](https://codepen.io/Zahari-Shinikchiev/full/qEarjVG)**
 
