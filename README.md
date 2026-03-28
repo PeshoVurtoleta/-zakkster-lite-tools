@@ -13,6 +13,8 @@ The standard library for high-performance web presentation.
 
 **[→ Live Recipes Gallery Demo](https://codepen.io/Zahari-Shinikchiev/full/qEarjVG)**
 
+**[→ Live Recipes Gallery Demo v2](https://cdpn.io/pen/debug/LERQdMR)**
+
 ## Why LiteTools?
 
 | Feature | LiteTools | lodash | GSAP | Framer Motion | p5.js |
