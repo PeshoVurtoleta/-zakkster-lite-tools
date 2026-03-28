@@ -7,9 +7,36 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-Types-informational)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-The standard library for high-performance web presentation.
+The standard library for high-performance web presentation. **45+ micro-libraries. 24 recipes. 1 install.**
 
-**Stop installing 500KB of frameworks just to make your website feel alive.** LiteTools gives you GSAP-level scroll reveals, Framer-level magnetic physics, Three.js-level particle engines, and Tailwind-level color generation in a single, tree-shakeable, zero-GC toolkit.
+**Stop installing 500KB of frameworks just to make your website feel alive.** LiteTools gives you GSAP-level scroll reveals, Framer-level magnetic physics, Three.js-level particle engines, Tailwind-level color generation, plus a complete game development layer — all in a single, tree-shakeable, zero-GC toolkit.
+
+**[→ Live Recipes Gallery Demo](https://codepen.io/Zahari-Shinikchiev/full/qEarjVG)**
+
+---
+
+## Changelog
+
+### v2.0.0
+
+**28 new dependencies. 10 new recipes. Full game development layer.**
+
+**Animation Primitives:**
+`lite-ease` (31 Penner curves), `lite-tween` (SoA declarative tweening), `lite-spring` (SpringPool with per-spring stiffness/damping), `lite-gradient` (zero-GC OKLCH N-stop gradients), `lite-noise` (seeded Simplex 2D/3D + FBM + curl), `lite-timeline` (GSAP-style sequence runner)
+
+**Interaction + Utility:**
+`lite-gesture` (multi-touch pan/pinch/velocity), `lite-confetti` (deterministic OKLCH confetti, 5 shapes, reduced-motion), `lite-id` (seedable nanoid alternative), `lite-vec` (Float32Array 2D vector math), `lite-steer` (boids, seek, flee, wander, path follow)
+
+**Game Layer:**
+`lite-bmfont` (O(1) kerning bitmap font), `lite-gamepad` (unified keyboard + gamepad), `lite-camera` (cinematic 2D camera with shake), `lite-spatial` (spatial hash grid), `lite-sat` (SAT polygon collision + MTV), `lite-path` (A* pathfinding), `lite-shadow` (2D visibility casting), `lite-wfc` (wave function collapse), `lite-audio-pool` (Web Audio sprite pool)
+
+**VFX Engines (composable weather/fire system):**
+`lite-fireworks` (shell → explosion), `lite-sparks` (impact + floor bounce), `lite-rain` (Z-depth parallax streaks → splashes), `lite-snow` (drift + melt ellipses, 3 presets), `lite-embers` (localized spawn + buoyancy + death hooks), `lite-smoke` (DPI-aware radial puff buffers)
+
+**New Recipes:**
+`retroArcadeText`, `proceduralWorld`, `dungeonGenerator`, `campfireScene`, `weatherSystem`, `boidsSimulation`, `gestureCarousel`, `timelineShowcase`, `sparkImpact`, `audioReactiveVFX`
+
+---
 
 **[→ Live Recipes Gallery Demo](https://codepen.io/Zahari-Shinikchiev/full/qEarjVG)**
 
@@ -324,7 +351,7 @@ const { destroy } = Recipes.tiltGallery('.gallery-card', overlayCanvas, {
 </details>
 
 <details>
-<summary><strong>🎬 12. Deterministic Replay System</strong> — <code>lite-random + lite-fx + lite-fsm</code></summary>
+<summary><strong>🎬 12. Deterministic Replay System</strong> — <code>lite-random + lite-fx + lite-states</code></summary>
 
 Record VFX events, replay them identically. Same seed + same inputs = same visual output. Perfect for replays, testing, and bug reports.
 
@@ -397,29 +424,283 @@ FSM auto-pauses the ticker and VFX when entering `paused`, resumes on `playing`.
 
 </details>
 
+### v2.0 Recipes
+
+<details>
+<summary><strong>🕹️ 15. Retro Arcade Text</strong> — <code>lite-bmfont + lite-tween + lite-ease + lite-random</code></summary>
+
+Bitmap font score counter with tween-animated damage numbers that float up and fade out. Perfect for game UIs.
+
+```javascript
+import { Recipes } from '@zakkster/lite-tools';
+
+const hud = Recipes.retroArcadeText(ctx, fontImage, fontData, { seed: 42 });
+
+// Hit event — number floats upward with easeOutCubic
+hud.addDamage(enemy.x, enemy.y, 150);
+
+// Call in render loop
+hud.update(dt);
+
+console.log(hud.getScore()); // cumulative
+```
+
+**Composes:** `BmFont` + `easeOutCubic` + `easeInOutCubic` + `createId()` + `Random`
+
+</details>
+
+<details>
+<summary><strong>🗺️ 16. Procedural World</strong> — <code>lite-noise + lite-gradient + lite-camera</code></summary>
+
+Infinite scrollable noise terrain with 6-stop OKLCH elevation gradient and smooth camera follow.
+
+```javascript
+import { Recipes } from '@zakkster/lite-tools';
+
+const world = Recipes.proceduralWorld(canvas, { seed: 42, cellSize: 8 });
+
+// Move the camera target (e.g. player position)
+world.moveTo(playerX, playerY);
+
+// In render loop
+world.render(dt);
+
+// New terrain
+world.reseed(9999);
+```
+
+**Composes:** `Noise.fbm2()` + `Gradient.at()` + `Camera` (deadzone + smoothing) + `toCssOklch()`
+
+</details>
+
+<details>
+<summary><strong>🏰 17. Dungeon Generator</strong> — <code>lite-wfc + lite-spatial + lite-path</code></summary>
+
+Random dungeon generation with spatial indexing and A* pathfinding overlay.
+
+```javascript
+import { Recipes } from '@zakkster/lite-tools';
+
+const dungeon = Recipes.dungeonGenerator({ width: 48, height: 48, seed: 42 });
+
+// Render to canvas
+dungeon.renderToCanvas(ctx, 12); // 12px tiles
+
+// Pathfind between two floor tiles
+const path = dungeon.findPath(5, 5, 40, 40);
+
+// Spatial queries for nearby entities
+dungeon.spatial.insert(enemy, enemy.x, enemy.y, 8, 8);
+const nearby = dungeon.spatial.query(player.x - 64, player.y - 64, 128, 128);
+```
+
+**Composes:** `Random` + `SpatialHash` + `PathFinder`
+
+</details>
+
+<details>
+<summary><strong>🔥 18. Campfire Scene</strong> — <code>lite-embers + lite-smoke</code></summary>
+
+Embers rise from a fire rectangle and automatically spawn smoke puffs when they die. The `onEmberDeath` hook is the decoupled handoff — the ember engine doesn't know smoke exists.
+
+```javascript
+import { Recipes } from '@zakkster/lite-tools';
+
+const fire = Recipes.campfireScene(canvas, {
+    fireX: 350, fireY: 500, fireW: 80, fireH: 25,
+    maxEmbers: 3000, maxSmoke: 1000, dpr: devicePixelRatio,
+});
+
+// In render loop
+ctx.fillStyle = '#0a0a14';
+ctx.fillRect(0, 0, w, h);
+fire.update(dt, w, h);
+```
+
+**Composes:** `EmberEngine` (localized spawn + dynamic buoyancy) → `onEmberDeath` → `SmokeEngine` (radial puff buffers)
+
+</details>
+
+<details>
+<summary><strong>🌧️ 19. Weather System</strong> — <code>lite-rain + lite-snow</code></summary>
+
+Dynamic weather with real-time mode switching and wind ramping. Rain and snow share the same pool size and wind target.
+
+```javascript
+import { Recipes } from '@zakkster/lite-tools';
+
+const weather = Recipes.weatherSystem(canvas, { mode: 'rain', maxParticles: 10000 });
+
+// Real-time wind control
+weather.setWind(300);   // strong right
+weather.setWind(-100);  // gentle left
+
+// Switch weather type (clears existing particles)
+weather.setMode('snow');
+
+// In render loop
+weather.update(dt, w, h);
+```
+
+**Composes:** `RainEngine` (Z-depth parallax, splash metamorphosis) + `SnowEngine` (sinusoidal drift, melt ellipses)
+
+</details>
+
+<details>
+<summary><strong>🐦 20. Boids Simulation</strong> — <code>lite-steer + lite-vec + lite-spatial</code></summary>
+
+Autonomous flocking agents with separation/alignment/cohesion, spatial hash neighbor queries, and OKLCH-colored triangles.
+
+```javascript
+import { Recipes } from '@zakkster/lite-tools';
+
+const boids = Recipes.boidsSimulation(canvas, { count: 200, seed: 42 });
+
+// Call in render loop — handles physics + rendering
+boids.update(dt);
+
+// Access agents for custom behavior
+boids.agents.forEach(a => {
+    if (a.x > 700) a.vx -= 50 * dt; // repel from right wall
+});
+```
+
+**Composes:** `SpatialHash` (O(1) neighbor lookup) + separation/alignment/cohesion forces + `Random`
+
+</details>
+
+<details>
+<summary><strong>👆 21. Gesture Carousel</strong> — <code>lite-gesture + lite-ease + lite-timeline</code></summary>
+
+Swipeable image carousel with velocity-aware snapping. Pan to drag, release to spring-snap to nearest slide.
+
+```javascript
+import { Recipes } from '@zakkster/lite-tools';
+
+const carousel = Recipes.gestureCarousel('#slider', ['.slide-1', '.slide-2', '.slide-3']);
+
+// Programmatic navigation
+carousel.goTo(2);
+
+console.log(carousel.getCurrentIndex()); // 2
+```
+
+**Composes:** `GestureRecognizer` (pan + panEnd with velocity) + `Timeline` + `easeOutCubic`
+
+</details>
+
+<details>
+<summary><strong>🎬 22. Timeline Showcase</strong> — <code>lite-timeline + lite-ease + lite-confetti</code></summary>
+
+Staggered entrance animation for a list of elements, followed by a confetti burst. One function call choreographs the entire sequence.
+
+```javascript
+import { Recipes } from '@zakkster/lite-tools';
+
+const show = Recipes.timelineShowcase('.feature-card', overlayCanvas, {
+    brandColor: { l: 0.6, c: 0.25, h: 280 },
+});
+
+show.play(); // stagger in → confetti burst
+```
+
+**Composes:** `Timeline` + `easeOutBack` (overshoot entrance) + `confetti()` (fire-and-forget)
+
+</details>
+
+<details>
+<summary><strong>💥 23. Spark Impact</strong> — <code>lite-sparks + lite-fireworks + lite-camera</code></summary>
+
+Click-to-explode with radial sparks, firework stars, and camera shake. Three VFX engines + camera composed into one call.
+
+```javascript
+import { Recipes } from '@zakkster/lite-tools';
+
+const impact = Recipes.sparkImpact(canvas, {
+    maxSparks: 5000, maxFireworks: 3000, shakeIntensity: 10,
+});
+
+canvas.addEventListener('click', (e) => impact.explodeAt(e.offsetX, e.offsetY));
+
+// In render loop
+ctx.fillStyle = 'rgba(10,10,10,0.3)';
+ctx.fillRect(0, 0, w, h);
+impact.update(dt);
+```
+
+**Composes:** `SparkEngine` (floor bounce + heat gradient) + `FireworksEngine` (radial burst) + `Camera.shake()`
+
+</details>
+
+<details>
+<summary><strong>🎵 24. Audio Reactive VFX</strong> — <code>lite-audio-pool + lite-embers + lite-ease</code></summary>
+
+Particles respond to audio frequency data. Low-frequency energy drives ember density and buoyancy — bass hits create eruptions.
+
+```javascript
+import { Recipes } from '@zakkster/lite-tools';
+
+const reactive = Recipes.audioReactiveVFX(canvas, { maxEmbers: 5000 });
+
+// Connect to any Web Audio source
+const audio = new Audio('track.mp3');
+const source = audioCtx.createMediaElementSource(audio);
+reactive.connectAudio(source);
+source.connect(audioCtx.destination);
+
+// In render loop
+reactive.update(dt, w, h);
+```
+
+**Composes:** `EmberEngine` (localized spawn + dynamic config) + Web Audio `AnalyserNode` (FFT) + `easeOutCubic`
+
+</details>
+
 ---
 
-## The @zakkster Ecosystem
-
 ```
-lite-lerp ─────────────────┬──── lite-color ──── lite-theme-gen
-                           │         │
-lite-random ───────────────┤         ├──── lite-fx (VFX engine)
-                           │         │
-lite-object-pool ── lite-particles ──┤
-                           │         ├──── lite-gen (generative art)
-lite-soa-particle-engine ──┤         │
-           └── lite-vfx    │         ├──── lite-ui (micro-interactions)
-                           │         │
-lite-smart-observer ───────┘         │
-lite-ticker ─────────────────────────┤
-lite-viewport ───────────────────────┤
-lite-fsm ────────────────────────────┤
-lite-fps-meter ──────────────────────┤
-lite-pointer-tracker ────────────────┘
-```
+FOUNDATION (standalone, zero deps)
+  lite-lerp, lite-ease, lite-id, lite-vec, lite-sat
 
-All composed into → **`@zakkster/lite-tools`** (this package)
+LAYER 1 (1 dep each)
+  lite-random ← (standalone)     lite-noise ← random
+  lite-color ← lerp              lite-tween ← lerp
+  lite-spring ← lerp             lite-camera ← random
+  lite-wfc ← random              lite-steer ← vec
+
+LAYER 2 (2+ deps)
+  lite-gradient ← color + lerp
+  lite-confetti ← random + color + ticker
+  lite-theme-gen ← color
+  lite-timeline ← (standalone)
+
+GAME LAYER (standalone)
+  lite-spatial, lite-gamepad, lite-path, lite-shadow
+  lite-bmfont, lite-audio-pool
+
+VFX ENGINES (1 dep: color)
+  lite-fireworks, lite-sparks, lite-rain
+  lite-snow, lite-embers, lite-smoke
+
+INTERACTION
+  lite-gesture ← pointer-tracker
+  lite-pointer-tracker, lite-ticker, lite-viewport
+  lite-states, lite-fps-meter
+
+HIGH-LEVEL COMPOSITES
+  lite-particles ← random + object-pool + color
+  lite-soa-particle-engine ← random
+  lite-fx ← soa-particle-engine + random + color + lerp
+  lite-gen ← random + color + lerp
+  lite-ui ← smart-observer + lerp + random + ticker
+  lite-smart-observer ← (standalone)
+
+ALL COMPOSED INTO:
+  ╔═══════════════════════════════════════╗
+  ║  @zakkster/lite-tools (this package)  ║
+  ║  42 deps · 24 recipes · 1 install    ║
+  ╚═══════════════════════════════════════╝
+```
 
 ## TypeScript
 
@@ -449,6 +730,63 @@ useEffect(() => {
     return () => destroyAll(effects);
 }, []);
 ```
+
+
+# 🚀 @zakkster/lite-tools v2.0.0
+
+v2.0 transforms `lite-tools` from a UI/canvas toolkit into a complete, AAA-grade presentation and game development standard library. This release introduces 30+ new micro-libraries, 10 advanced recipes, and a fully rewritten, Zero-GC Structure-of-Arrays (SoA) physics ecosystem.
+
+## 🌟 Major Highlights
+
+### 1. The Zero-GC VFX Suite
+We have introduced a master-tier, dependency-free environmental VFX suite. These engines use $O(1)$ object pooling, flat `Float32Array` memory layouts, and Data-Oriented Design to render thousands of particles with zero garbage collection stutter.
+* **`@zakkster/lite-rain`**: 3-tier Z-layer batching, parallax motion blur, and streak-to-splash metamorphosis.
+* **`@zakkster/lite-snow`**: Langevin sine-drift, true 3D floor accumulation, and $O(1)$ parallax caching.
+* **`@zakkster/lite-embers`**: Volumetric fire with thermodynamic heat gradients, $O(C)$ color bucketing, and decoupled death hooks.
+* **`@zakkster/lite-smoke`**: DPI-aware radial buffer stamping with volumetric expansion.
+* **`@zakkster/lite-fireworks`**: Multi-stage ballistic physics with trailing sparks.
+* **`@zakkster/lite-sparks`**: Vector velocity stretching and true-bounds floor restitution.
+
+### 2. High-Performance Math & Game Systems
+v2 introduces a complete structural backbone for autonomous agents and procedural generation.
+* **Spatial & Physics**: `lite-spatial` (Spatial Hashing), `lite-sat` (Separating Axis Theorem), `lite-vec` (Vector Math).
+* **AI & Pathing**: `lite-steer` (Boids/Flocking), `lite-path` (A* Pathfinding).
+* **Procedural**: `lite-wfc` (Wave Function Collapse for infinite dungeons/terrain).
+* **Game Dev**: `lite-camera`, `lite-gamepad`, `lite-bmfont` (Bitmap Fonts), `lite-audio-pool`.
+
+### 3. Advanced Animation & Interaction
+* **`@zakkster/lite-confetti`**: Deterministic, OKLCH-based confetti with native `prefers-reduced-motion` handling.
+* **`@zakkster/lite-gesture`**: Unified pointer tracking for swipes, pinches, and velocity-based carousels.
+* **`@zakkster/lite-timeline`**: GSAP-style timeline sequencer with composable tweens and springs.
+
+---
+
+## 🍳 10 New Recipes (Recipes 15–24)
+*The `Recipes` object has been expanded with 10 complex, ready-to-use composites:*
+
+* **`15. retroArcadeText`**: Bitmap font score + damage numbers.
+* **`16. proceduralWorld`**: Infinite noise terrain + camera follow.
+* **`17. dungeonGenerator`**: WFC dungeon + spatial + A* pathfinding.
+* **`18. campfireScene`**: Embers → smoke handoff via `onEmberDeath` hook.
+* **`19. weatherSystem`**: Dynamic rain/snow with smooth wind shear control.
+* **`20. boidsSimulation`**: Flocking agents with spatial hash collision.
+* **`21. gestureCarousel`**: Swipe/pinch carousel with spring-snapping.
+* **`22. timelineShowcase`**: Staggered DOM entrance + confetti finale.
+* **`23. sparkImpact`**: Click-to-explode sparks + fireworks + camera shake.
+* **`24. audioReactiveVFX`**: Audio FFT drives ember density/buoyancy.
+
+---
+
+## 🛠 Architectural & Scoping Fixes
+* **Monorepo Scoping Correction**: Fixed a critical module resolution issue where legacy unscoped packages (`lite-states`, `lite-fps-meter`, `lite-pointer-tracker`, `lite-object-pool`, `lite-viewport`) were incorrectly prefixed with `@zakkster/`. `package.json` now maps to the correct global NPM registry equivalents.
+* **Test Environment**: Fixed `ReferenceError: HTMLElement is not defined` and canvas mocking issues by natively integrating JSDOM into the Vitest execution pipelines.
+* **Renamed Package**: `lite-fsm` has been correctly updated to its published name, `lite-states`.
+* **Zero-GC Enforcement**: Removed all `[].concat()` and `...spread` operators from hot loops across the ecosystem (including the new `lite-parse-argv` CLI engine).
+
+## ⚠️ Breaking Changes
+* If you previously imported `FSM` from `@zakkster/lite-fsm`, you must now import it from the unscoped `lite-states` package (or simply grab it directly from the `@zakkster/lite-tools` barrel export).
+* `gameCanvas` recipe now properly integrates `lite-states` for strict `loading -> ready -> playing -> paused` lifecycle management.
+
 
 ## License
 

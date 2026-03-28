@@ -85,10 +85,48 @@ from
 
 // Viewport, Ticker, FSM, FPS, Pointer, Assets, Audio
 export {Viewport} from 'lite-viewport';
-export {Ticker} from 'lite-ticker';
-export {FSM} from 'lite-fsm';
+export {Ticker} from '@zakkster/lite-ticker';
+export {FSM} from 'lite-states';
 export {FPSMeter} from 'lite-fps-meter';
 export {PointerTracker} from 'lite-pointer-tracker';
+
+// ═══════════════════════════════════════════════════════════
+//  v2.0 — NEW BARREL RE-EXPORTS
+// ═══════════════════════════════════════════════════════════
+
+// Animation primitives
+export { easeInQuad, easeOutQuad, easeInOutQuad, easeInCubic, easeOutCubic, easeInOutCubic, easeInQuart, easeOutQuart, easeInOutQuart, easeInQuint, easeOutQuint, easeInOutQuint, easeInSine, easeOutSine, easeInOutSine, easeInExpo, easeOutExpo, easeInOutExpo, easeInCirc, easeOutCirc, easeInOutCirc, easeInBack, easeOutBack, easeInOutBack, easeInElastic, easeOutElastic, easeInOutElastic, easeInBounce, easeOutBounce, easeInOutBounce, linear } from '@zakkster/lite-ease';
+export { Tween } from '@zakkster/lite-tween';
+export { SpringStandalone, SpringPool } from '@zakkster/lite-spring';
+export { Gradient } from '@zakkster/lite-gradient';
+export { Noise } from '@zakkster/lite-noise';
+export { Timeline } from '@zakkster/lite-timeline';
+
+// Interaction + utility
+export { GestureRecognizer } from '@zakkster/lite-gesture';
+export { confetti, createConfetti } from '@zakkster/lite-confetti';
+export { createId, createIdGenerator } from '@zakkster/lite-id';
+export { Vec2 } from '@zakkster/lite-vec';
+export { Seek, Flee, Wander, Arrive, Pursuit, Evade, PathFollow, Separation, Alignment, Cohesion, Flock } from '@zakkster/lite-steer';
+
+// Game layer
+export { BmFont } from '@zakkster/lite-bmfont';
+export { InputPoller } from '@zakkster/lite-gamepad';
+export { Camera } from '@zakkster/lite-camera';
+export { SpatialHash } from '@zakkster/lite-spatial';
+export { testPolygonPolygon, translatePoly, rotatePoly } from '@zakkster/lite-sat';
+export { PathFinder } from '@zakkster/lite-path';
+export { ShadowCaster } from '@zakkster/lite-shadow';
+export { WFC } from '@zakkster/lite-wfc';
+export { AudioPool } from '@zakkster/lite-audio-pool';
+
+// VFX engines
+export { FireworksEngine } from '@zakkster/lite-fireworks';
+export { SparkEngine } from '@zakkster/lite-sparks';
+export { RainEngine } from '@zakkster/lite-rain';
+export { SnowEngine } from '@zakkster/lite-snow';
+export { EmberEngine } from '@zakkster/lite-embers';
+export { SmokeEngine } from '@zakkster/lite-smoke';
 
 
 // ═══════════════════════════════════════════════════════════
@@ -100,17 +138,24 @@ import type {FXSystem} from '@zakkster/lite-fx';
 import type {GenEngine, FlowField, SimplexNoise} from '@zakkster/lite-gen';
 import type {Magnetic, ColorShift, ConfettiBurst, Spring} from '@zakkster/lite-ui';
 import type {ThemePalette} from '@zakkster/lite-theme-gen';
-import type
-
-Random
-from
-'@zakkster/lite-random';
+import type {Random} from '@zakkster/lite-random';
 import type {Emitter} from '@zakkster/lite-particles';
-import type {Ticker} from 'lite-ticker';
+import type {Ticker} from '@zakkster/lite-ticker';
 import type {Viewport} from 'lite-viewport';
-import type {FSM} from 'lite-fsm';
+import type {FSM} from 'lite-states';
 import type {FPSMeter} from 'lite-fps-meter';
 import type {PointerTracker} from 'lite-pointer-tracker';
+import type {BmFont} from '@zakkster/lite-bmfont';
+import type {Camera} from '@zakkster/lite-camera';
+import type {SpatialHash} from '@zakkster/lite-spatial';
+import type {EmberEngine} from '@zakkster/lite-embers';
+import type {SmokeEngine} from '@zakkster/lite-smoke';
+import type {RainEngine} from '@zakkster/lite-rain';
+import type {SnowEngine} from '@zakkster/lite-snow';
+import type {SparkEngine} from '@zakkster/lite-sparks';
+import type {FireworksEngine} from '@zakkster/lite-fireworks';
+import type {GestureRecognizer} from '@zakkster/lite-gesture';
+import type {Timeline} from '@zakkster/lite-timeline';
 
 /** All recipes return at least a destroy() method. */
 interface Destroyable {
@@ -257,6 +302,88 @@ export declare const Recipes: {
     replaySystem(ctx: CanvasRenderingContext2D, options?: { maxParticles?: number; seed?: number }): ReplaySystemResult;
     themePlayground(options?: { initialBrand?: OklchColor; mode?: 'light' | 'dark'; prefix?: string; onThemeChange?: (palette: ThemePalette, css: string) => void }): ThemePlaygroundResult;
     gameCanvas(canvas: HTMLCanvasElement, options?: { fps?: boolean; fpsPosition?: string; seed?: number; maxParticles?: number; states?: Record<string, string[]> }): GameCanvasResult;
+
+    // v2.0 recipes
+    retroArcadeText(ctx: CanvasRenderingContext2D, fontImage: HTMLImageElement, fontData: object, options?: { seed?: number; maxNumbers?: number }): RetroArcadeTextResult;
+    proceduralWorld(canvas: HTMLCanvasElement, options?: { seed?: number; cellSize?: number; scale?: number }): ProceduralWorldResult;
+    dungeonGenerator(options?: { width?: number; height?: number; seed?: number }): DungeonGeneratorResult;
+    campfireScene(canvas: HTMLCanvasElement, options?: { fireX?: number; fireY?: number; fireW?: number; fireH?: number; maxEmbers?: number; maxSmoke?: number; dpr?: number }): CampfireSceneResult;
+    weatherSystem(canvas: HTMLCanvasElement, options?: { mode?: 'rain' | 'snow'; maxParticles?: number }): WeatherSystemResult;
+    boidsSimulation(canvas: HTMLCanvasElement, options?: { count?: number; seed?: number }): BoidsSimulationResult;
+    gestureCarousel(container: HTMLElement | string, slides: (HTMLElement | string)[], options?: { stiffness?: number; damping?: number }): GestureCarouselResult;
+    timelineShowcase(elements: string | NodeListOf<Element>, overlayCanvas?: HTMLCanvasElement, options?: { brandColor?: OklchColor }): TimelineShowcaseResult;
+    sparkImpact(canvas: HTMLCanvasElement, options?: { maxSparks?: number; maxFireworks?: number; shakeIntensity?: number }): SparkImpactResult;
+    audioReactiveVFX(canvas: HTMLCanvasElement, options?: { maxEmbers?: number }): AudioReactiveVFXResult;
 };
+
+// ═══════════════════════════════════════════════════════════
+//  v2.0 RECIPE RESULT TYPES
+// ═══════════════════════════════════════════════════════════
+
+export interface RetroArcadeTextResult extends Destroyable {
+    addDamage(x: number, y: number, value: number): void;
+    update(dt: number): void;
+    getScore(): number;
+    resetScore(): void;
+}
+
+export interface ProceduralWorldResult extends Destroyable {
+    cam: Camera;
+    render(dt: number): void;
+    moveTo(x: number, y: number): void;
+    reseed(s?: number): void;
+}
+
+export interface DungeonGeneratorResult extends Destroyable {
+    grid: Uint8Array;
+    width: number;
+    height: number;
+    spatial: SpatialHash;
+    isWalkable(x: number, y: number): boolean;
+    findPath(sx: number, sy: number, ex: number, ey: number): Array<{ x: number; y: number }> | null;
+    renderToCanvas(ctx: CanvasRenderingContext2D, tileSize?: number): void;
+}
+
+export interface CampfireSceneResult extends Destroyable {
+    embers: EmberEngine;
+    smoke: SmokeEngine;
+    update(dt: number, w: number, h: number): void;
+}
+
+export interface WeatherSystemResult extends Destroyable {
+    update(dt: number, w: number, h: number): void;
+    setWind(v: number): void;
+    setMode(m: 'rain' | 'snow'): void;
+    getMode(): string;
+}
+
+export interface BoidsSimulationResult extends Destroyable {
+    agents: Array<{ id: number; x: number; y: number; vx: number; vy: number; hue: number }>;
+    update(dt: number): void;
+}
+
+export interface GestureCarouselResult extends Destroyable {
+    goTo(index: number): void;
+    getCurrentIndex(): number;
+}
+
+export interface TimelineShowcaseResult extends Destroyable {
+    timeline: Timeline;
+    play(): void;
+}
+
+export interface SparkImpactResult extends Destroyable {
+    sparks: SparkEngine;
+    fireworks: FireworksEngine;
+    cam: Camera;
+    explodeAt(x: number, y: number): void;
+    update(dt: number): void;
+}
+
+export interface AudioReactiveVFXResult extends Destroyable {
+    embers: EmberEngine;
+    connectAudio(sourceNode: AudioNode): void;
+    update(dt: number, w: number, h: number): void;
+}
 
 export default Recipes;

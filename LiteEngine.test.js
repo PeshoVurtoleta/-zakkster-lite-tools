@@ -1,3 +1,4 @@
+/** @vitest-environment jsdom */
 import {describe, it, expect, vi, beforeEach, afterEach} from 'vitest';
 
 // ── Mock all dependencies ──
@@ -616,7 +617,7 @@ vi.mock('lite-viewport', () => ({
         }
     }
 }));
-vi.mock('lite-ticker', () => {
+vi.mock('@zakkster/lite-ticker', () => {
     class T {
         constructor() {
             this.time = 0;
@@ -649,7 +650,7 @@ vi.mock('lite-ticker', () => {
 
     return {Ticker: T};
 });
-vi.mock('lite-fsm', () => {
+vi.mock('lite-states', () => {
     class F {
         constructor(init, map) {
             this.current = init;
@@ -704,7 +705,7 @@ vi.mock('lite-pointer-tracker', () => ({
     }
 }));
 
-import {Recipes} from './LiteTools.js';
+import {Recipes} from './LiteEngine.js';
 
 // ── Helpers ──
 function mockCanvas() {

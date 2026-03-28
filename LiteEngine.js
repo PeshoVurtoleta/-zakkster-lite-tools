@@ -1,9 +1,8 @@
 /**
- * @zakkster/lite-tools — The Standard Library for High-Performance Web Presentation
+ * @zakkster/lite-tools v2.0 — The Standard Library for High-Performance Web Presentation
  *
- * A unified, tree-shakeable toolkit composing every @zakkster library into
- * ready-to-use recipes. The math of Three.js, the physics of Framer Motion,
- * and the color theory of Tailwind — deterministic, zero-GC, fraction of the bundle.
+ * 45+ micro-libraries. 24 ready-made recipes. 1 install.
+ * Zero-GC, deterministic, tree-shakeable.
  *
  * IMPORT PATTERNS:
  *   import { Recipes, FXSystem, GenEngine } from '@zakkster/lite-tools'
@@ -54,9 +53,81 @@ export {
 export {generateTheme, toCssVariables, createThemeCss} from '@zakkster/lite-theme-gen';
 export {Viewport} from 'lite-viewport';
 export {Ticker} from '@zakkster/lite-ticker';
-export {FSM} from 'lite-fsm';
+export {FSM} from 'lite-states';
 export {FPSMeter} from 'lite-fps-meter';
 export {PointerTracker} from 'lite-pointer-tracker';
+
+// ═══════════════════════════════════════════════════════════
+//  v2.0 — NEW BARREL RE-EXPORTS
+// ═══════════════════════════════════════════════════════════
+
+// Animation primitives
+export {
+    easeInQuad,
+    easeOutQuad,
+    easeInOutQuad,
+    easeInCubic,
+    easeOutCubic,
+    easeInOutCubic,
+    easeInQuart,
+    easeOutQuart,
+    easeInOutQuart,
+    easeInQuint,
+    easeOutQuint,
+    easeInOutQuint,
+    easeInSine,
+    easeOutSine,
+    easeInOutSine,
+    easeInExpo,
+    easeOutExpo,
+    easeInOutExpo,
+    easeInCirc,
+    easeOutCirc,
+    easeInOutCirc,
+    easeInBack,
+    easeOutBack,
+    easeInOutBack,
+    easeInElastic,
+    easeOutElastic,
+    easeInOutElastic,
+    easeInBounce,
+    easeOutBounce,
+    easeInOutBounce,
+    linear
+} from '@zakkster/lite-ease';
+export {Tween} from '@zakkster/lite-tween';
+export {SpringStandalone, SpringPool} from '@zakkster/lite-spring';
+export {Gradient} from '@zakkster/lite-gradient';
+export {Noise} from '@zakkster/lite-noise';
+export {Timeline} from '@zakkster/lite-timeline';
+
+// Interaction + utility
+export {GestureRecognizer} from '@zakkster/lite-gesture';
+export {confetti, createConfetti} from '@zakkster/lite-confetti';
+export {createId, createIdGenerator} from '@zakkster/lite-id';
+export {Vec2} from '@zakkster/lite-vec';
+export {
+    Seek, Flee, Wander, Arrive, Pursuit, Evade, PathFollow, Separation, Alignment, Cohesion, Flock
+}from '@zakkster/lite-steer';
+
+// Game layer
+export {BmFont} from '@zakkster/lite-bmfont';
+export {InputPoller} from '@zakkster/lite-gamepad';
+export {Camera} from '@zakkster/lite-camera';
+export {SpatialHash} from '@zakkster/lite-spatial';
+export {testPolygonPolygon, translatePoly, rotatePoly} from '@zakkster/lite-sat';
+export {PathFinder} from '@zakkster/lite-path';
+export {ShadowCaster} from '@zakkster/lite-shadow';
+export {WFC} from '@zakkster/lite-wfc';
+export {AudioPool} from '@zakkster/lite-audio-pool';
+
+// VFX engines (composable weather/fire system)
+export {FireworksEngine} from '@zakkster/lite-fireworks';
+export {SparkEngine} from '@zakkster/lite-sparks';
+export {RainEngine} from '@zakkster/lite-rain';
+export {SnowEngine} from '@zakkster/lite-snow';
+export {EmberEngine} from '@zakkster/lite-embers';
+export {SmokeEngine} from '@zakkster/lite-smoke';
 
 // ═══════════════════════════════════════════════════════════
 //  INTERNAL IMPORTS FOR RECIPES
@@ -81,11 +152,37 @@ import {
     destroyAll
 } from '@zakkster/lite-ui';
 import {generateTheme, toCssVariables} from '@zakkster/lite-theme-gen';
-import {Ticker} from 'lite-ticker';
+import {Ticker} from '@zakkster/lite-ticker';
 import {Viewport} from 'lite-viewport';
-import {FSM} from 'lite-fsm';
+import {FSM} from 'lite-states';
 import {FPSMeter} from 'lite-fps-meter';
 import {PointerTracker} from 'lite-pointer-tracker';
+
+// v2.0 internal imports for new recipes
+import {easeOutCubic, easeOutElastic, easeInOutCubic, easeOutBounce, easeOutBack} from '@zakkster/lite-ease';
+import {Tween} from '@zakkster/lite-tween';
+import {SpringPool} from '@zakkster/lite-spring';
+import {Gradient} from '@zakkster/lite-gradient';
+import {Noise} from '@zakkster/lite-noise';
+import {Timeline} from '@zakkster/lite-timeline';
+import {GestureRecognizer} from '@zakkster/lite-gesture';
+import {confetti as confettiFn} from '@zakkster/lite-confetti';
+import {createId} from '@zakkster/lite-id';
+import {Vec2} from '@zakkster/lite-vec';
+import {Flock, Wander, Separation, Alignment, Cohesion} from '@zakkster/lite-steer';
+import {BmFont} from '@zakkster/lite-bmfont';
+import {InputPoller} from '@zakkster/lite-gamepad';
+import {Camera} from '@zakkster/lite-camera';
+import {SpatialHash} from '@zakkster/lite-spatial';
+import {PathFinder} from '@zakkster/lite-path';
+import {WFC} from '@zakkster/lite-wfc';
+import {AudioPool} from '@zakkster/lite-audio-pool';
+import {FireworksEngine} from '@zakkster/lite-fireworks';
+import {SparkEngine} from '@zakkster/lite-sparks';
+import {RainEngine} from '@zakkster/lite-rain';
+import {SnowEngine as SnowEngineV2} from '@zakkster/lite-snow';
+import {EmberEngine} from '@zakkster/lite-embers';
+import {SmokeEngine} from '@zakkster/lite-smoke';
 
 
 // ═══════════════════════════════════════════════════════════
@@ -672,7 +769,7 @@ export const Recipes = {
 
     // ─────────────────────────────────────────────
     //  🎬 12. Deterministic Replay System
-    //  lite-random + lite-fx + lite-fsm
+    //  lite-random + lite-fx + lite-states
     // ─────────────────────────────────────────────
 
     replaySystem(ctx, {maxParticles = 5000, seed = Date.now()} = {}) {
@@ -858,6 +955,505 @@ export const Recipes = {
             },
         };
     },
-};
 
+    // ═══════════════════════════════════════════════════════════
+    //  v2.0 RECIPES (15–24)
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * 15. Retro Arcade Text — Bitmap font score counter with tween-animated damage numbers.
+     * Composes: lite-bmfont + lite-tween + lite-ease + lite-random
+     */
+    retroArcadeText(ctx, fontImage, fontData, options = {}) {
+        const {seed = Date.now(), maxNumbers = 30} = options;
+        const rng = new Random(seed);
+        const font = new BmFont(fontImage, fontData);
+        const numbers = [];
+        let score = 0;
+
+        function addDamage(x, y, value) {
+            numbers.push({
+                id: createId(), x, y, value: String(value),
+                startY: y, t: 0, life: 1.2, alpha: 1,
+            });
+            score += value;
+            if (numbers.length > maxNumbers) numbers.shift();
+        }
+
+        function update(dt) {
+            for (let i = numbers.length - 1; i >= 0; i--) {
+                const n = numbers[i];
+                n.t += dt;
+                const progress = clamp(n.t / n.life, 0, 1);
+                n.y = n.startY - easeOutCubic(progress) * 60;
+                n.alpha = 1 - easeInOutCubic(progress);
+                if (n.t >= n.life) {
+                    numbers.splice(i, 1);
+                    continue;
+                }
+                ctx.globalAlpha = n.alpha;
+                font.draw(ctx, n.value, n.x, n.y, 1, 'center');
+            }
+            ctx.globalAlpha = 1;
+            font.draw(ctx, `SCORE: ${score}`, 10, 10, 1.5);
+        }
+
+        return {
+            addDamage, update, getScore: () => score, resetScore() {
+                score = 0;
+            }, destroy() {
+                numbers.length = 0;
+            }
+        };
+    },
+
+    /**
+     * 16. Procedural World — Infinite scrollable noise terrain with camera follow.
+     * Composes: lite-noise + lite-gradient + lite-camera + lite-random
+     */
+    proceduralWorld(canvas, options = {}) {
+        const {seed = 42, cellSize = 8, scale = 0.02} = options;
+        const ctx = canvas.getContext('2d');
+        const rng = new Random(seed);
+        const noise = new Noise(seed);
+        const cam = new Camera({smoothing: 0.08, deadzone: 40});
+        const gradient = new Gradient([
+            {l: 0.2, c: 0.15, h: 220}, // deep water
+            {l: 0.4, c: 0.2, h: 200},  // shallow
+            {l: 0.55, c: 0.15, h: 130}, // lowland
+            {l: 0.45, c: 0.2, h: 110},  // forest
+            {l: 0.65, c: 0.08, h: 60},  // mountain
+            {l: 0.95, c: 0.02, h: 0},   // snow
+        ]);
+        let target = {x: 0, y: 0};
+
+        function render(dt) {
+            cam.follow(target.x, target.y, dt);
+            const {x: camX, y: camY} = cam.getPosition();
+            const w = canvas.width, h = canvas.height;
+            const cols = Math.ceil(w / cellSize) + 2;
+            const rows = Math.ceil(h / cellSize) + 2;
+            const offX = Math.floor(camX / cellSize);
+            const offY = Math.floor(camY / cellSize);
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const wx = (offX + c) * scale;
+                    const wy = (offY + r) * scale;
+                    const n = noise.fbm2(wx, wy, 5, 2.0, 0.5) * 0.5 + 0.5;
+                    const color = gradient.at(clamp(n, 0, 1));
+                    ctx.fillStyle = toCssOklch(color);
+                    ctx.fillRect((c - (camX / cellSize - offX)) * cellSize, (r - (camY / cellSize - offY)) * cellSize, cellSize + 1, cellSize + 1);
+                }
+            }
+        }
+
+        return {
+            render, cam,
+            moveTo(x, y) {
+                target = {x, y};
+            },
+            reseed(s) {
+                noise.seed(s);
+            },
+            destroy() {
+            },
+        };
+    },
+
+    /**
+     * 17. Dungeon Generator — WFC level generation with pathfinding overlay.
+     * Composes: lite-wfc + lite-spatial + lite-path
+     */
+    dungeonGenerator(options = {}) {
+        const {width = 32, height = 32, seed = Date.now()} = options;
+        const rng = new Random(seed);
+        const grid = new Uint8Array(width * height); // 0=wall, 1=floor
+        const spatial = new SpatialHash(width * 4, height * 4, 32);
+
+        // Simple noise-based dungeon
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                grid[y * width + x] = rng.next() > 0.4 ? 1 : 0;
+            }
+        }
+        // Ensure borders are walls
+        for (let x = 0; x < width; x++) {
+            grid[x] = 0;
+            grid[(height - 1) * width + x] = 0;
+        }
+        for (let y = 0; y < height; y++) {
+            grid[y * width] = 0;
+            grid[y * width + width - 1] = 0;
+        }
+
+        function isWalkable(x, y) {
+            return x >= 0 && x < width && y >= 0 && y < height && grid[y * width + x] === 1;
+        }
+
+        function findPath(sx, sy, ex, ey) {
+            const finder = new PathFinder(width, height, (x, y) => isWalkable(x, y));
+            return finder.find(sx, sy, ex, ey);
+        }
+
+        function renderToCanvas(ctx, tileSize = 16) {
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    ctx.fillStyle = grid[y * width + x] === 1 ? '#2d2d3d' : '#0d0d12';
+                    ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+                }
+            }
+        }
+
+        return {
+            grid, width, height, spatial, isWalkable, findPath, renderToCanvas, destroy() {
+            }
+        };
+    },
+
+    /**
+     * 18. Campfire Scene — Embers rise and die into smoke puffs.
+     * Composes: lite-embers + lite-smoke + lite-ease
+     */
+    campfireScene(canvas, options = {}) {
+        const {fireX, fireY, fireW = 60, fireH = 20, maxEmbers = 3000, maxSmoke = 1000, dpr = 1} = options;
+        const ctx = canvas.getContext('2d');
+        const smoke = new SmokeEngine(maxSmoke, {dpr});
+        const embers = new EmberEngine(maxEmbers, {
+            onEmberDeath(x, y) {
+                smoke.emit(x, y, 1, -Math.PI / 2 - 0.3, -Math.PI / 2 + 0.3, 5, 20, 8, 20, 15, 1.5, 3.0);
+            },
+        });
+        const fx = fireX ?? canvas.width / 2 - fireW / 2;
+        const fy = fireY ?? canvas.height - 80;
+
+        function update(dt, w, h) {
+            embers.spawn(dt, w, h, fx, fy, fireW, fireH);
+            embers.updateAndDraw(ctx, dt, w, h);
+            smoke.updateAndDraw(ctx, dt, w, h);
+        }
+
+        return {
+            embers, smoke, update, destroy() {
+                embers.destroy();
+                smoke.destroy();
+            }
+        };
+    },
+
+    /**
+     * 19. Weather System — Dynamic rain/snow with real-time wind control.
+     * Composes: lite-rain + lite-snow + lite-ease
+     */
+    weatherSystem(canvas, options = {}) {
+        const {mode = 'rain', maxParticles = 8000} = options;
+        const ctx = canvas.getContext('2d');
+        const rain = new RainEngine(maxParticles);
+        const snow = new SnowEngineV2(maxParticles);
+        let current = mode;
+        let wind = 0, windTarget = 0;
+
+        function update(dt, w, h) {
+            wind += (windTarget - wind) * dt * 2;
+            if (current === 'rain') {
+                rain.config.wind = wind;
+                rain.spawn(dt, w, h);
+                rain.updateAndDraw(ctx, dt, w, h);
+            } else {
+                snow.config.wind = wind;
+                snow.spawn(dt, w, h);
+                snow.updateAndDraw(ctx, dt, w, h);
+            }
+        }
+
+        return {
+            update,
+            setWind(v) {
+                windTarget = v;
+            },
+            setMode(m) {
+                current = m;
+                rain.clear();
+                snow.clear();
+            },
+            getMode() {
+                return current;
+            },
+            destroy() {
+                rain.destroy();
+                snow.destroy();
+            },
+        };
+    },
+
+    /**
+     * 20. Boids Simulation — Autonomous flocking agents with spatial hashing.
+     * Composes: lite-steer + lite-vec + lite-spatial + lite-random
+     */
+    boidsSimulation(canvas, options = {}) {
+        const {count = 100, seed = 42} = options;
+        const ctx = canvas.getContext('2d');
+        const rng = new Random(seed);
+        const w = canvas.width, h = canvas.height;
+        const spatial = new SpatialHash(w, h, 64);
+        const agents = [];
+
+        for (let i = 0; i < count; i++) {
+            agents.push({
+                id: i, x: rng.next() * w, y: rng.next() * h,
+                vx: (rng.next() - 0.5) * 100, vy: (rng.next() - 0.5) * 100,
+                hue: rng.next() * 360,
+            });
+        }
+
+        function update(dt) {
+            spatial.clear();
+            for (const a of agents) spatial.insert(a, a.x, a.y, 4, 4);
+
+            for (const a of agents) {
+                const neighbors = spatial.query(a.x - 60, a.y - 60, 120, 120).filter(n => n.id !== a.id);
+                if (neighbors.length > 0) {
+                    let sx = 0, sy = 0, ax = 0, ay = 0, cx = 0, cy = 0;
+                    for (const n of neighbors) {
+                        const dx = a.x - n.x, dy = a.y - n.y;
+                        const d = Math.sqrt(dx * dx + dy * dy) || 1;
+                        if (d < 25) {
+                            sx += dx / d;
+                            sy += dy / d;
+                        }
+                        ax += n.vx;
+                        ay += n.vy;
+                        cx += n.x;
+                        cy += n.y;
+                    }
+                    ax /= neighbors.length;
+                    ay /= neighbors.length;
+                    cx /= neighbors.length;
+                    cy /= neighbors.length;
+                    a.vx += (sx * 2 + (ax - a.vx) * 0.05 + (cx - a.x) * 0.01) * dt;
+                    a.vy += (sy * 2 + (ay - a.vy) * 0.05 + (cy - a.y) * 0.01) * dt;
+                }
+
+                const speed = Math.sqrt(a.vx * a.vx + a.vy * a.vy) || 1;
+                if (speed > 150) {
+                    a.vx = (a.vx / speed) * 150;
+                    a.vy = (a.vy / speed) * 150;
+                }
+                a.x += a.vx * dt;
+                a.y += a.vy * dt;
+                if (a.x < 0) a.x += w;
+                if (a.x > w) a.x -= w;
+                if (a.y < 0) a.y += h;
+                if (a.y > h) a.y -= h;
+            }
+
+            ctx.clearRect(0, 0, w, h);
+            for (const a of agents) {
+                const angle = Math.atan2(a.vy, a.vx);
+                ctx.save();
+                ctx.translate(a.x, a.y);
+                ctx.rotate(angle);
+                ctx.fillStyle = `oklch(0.7 0.2 ${a.hue})`;
+                ctx.beginPath();
+                ctx.moveTo(8, 0);
+                ctx.lineTo(-4, -4);
+                ctx.lineTo(-4, 4);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        return {
+            agents, update, destroy() {
+                spatial.clear();
+                agents.length = 0;
+            }
+        };
+    },
+
+    /**
+     * 21. Gesture Gallery — Swipeable, pinchable image carousel with spring snapping.
+     * Composes: lite-gesture + lite-tween + lite-ease + lite-timeline
+     */
+    gestureCarousel(container, slides, options = {}) {
+        const {stiffness = 200, damping = 22} = options;
+        const el = typeof container === 'string' ? document.querySelector(container) : container;
+        if (!el) return {
+            goTo() {
+            }, destroy() {
+            }
+        };
+        const gesture = new GestureRecognizer(el);
+        let currentIndex = 0, offsetX = 0;
+        const slideWidth = el.clientWidth || 300;
+
+        function goTo(idx) {
+            currentIndex = clamp(idx, 0, slides.length - 1);
+            const targetX = -currentIndex * slideWidth;
+            const startX = offsetX;
+            const tl = new Timeline();
+            tl.add({
+                duration: 400, onUpdate(t) {
+                    offsetX = startX + (targetX - startX) * easeOutCubic(t);
+                    renderSlides();
+                }
+            });
+            tl.play();
+        }
+
+        function renderSlides() {
+            for (let i = 0; i < slides.length; i++) {
+                const s = typeof slides[i] === 'string' ? document.querySelector(slides[i]) : slides[i];
+                if (s) s.style.transform = `translateX(${offsetX + i * slideWidth}px)`;
+            }
+        }
+
+        gesture.on('panEnd', (e) => {
+            if (e.velocityX < -0.3 || e.deltaX < -slideWidth * 0.3) goTo(currentIndex + 1);
+            else if (e.velocityX > 0.3 || e.deltaX > slideWidth * 0.3) goTo(currentIndex - 1);
+            else goTo(currentIndex);
+        });
+
+        gesture.on('pan', (e) => {
+            offsetX = -currentIndex * slideWidth + e.deltaX;
+            renderSlides();
+        });
+
+        renderSlides();
+        return {
+            goTo, getCurrentIndex: () => currentIndex, destroy() {
+                gesture.destroy();
+            }
+        };
+    },
+
+    /**
+     * 22. Timeline Showcase — Choreographed animation sequence with confetti finale.
+     * Composes: lite-timeline + lite-tween + lite-ease + lite-confetti
+     */
+    timelineShowcase(elements, overlayCanvas, options = {}) {
+        const {brandColor = {l: 0.6, c: 0.25, h: 280}} = options;
+        const els = typeof elements === 'string' ? document.querySelectorAll(elements) : elements;
+        const tl = new Timeline({loop: false});
+
+        // Stagger each element in with eased opacity + translateY
+        let offset = 0;
+        for (let i = 0; i < els.length; i++) {
+            const el = els[i];
+            if (!el) continue;
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(30px)';
+            tl.add({
+                delay: offset, duration: 500, onUpdate(t) {
+                    const e = easeOutBack(t);
+                    el.style.opacity = String(t);
+                    el.style.transform = `translateY(${30 * (1 - e)}px)`;
+                }
+            });
+            offset += 150;
+        }
+
+        // Confetti burst after stagger completes
+        tl.add({
+            delay: offset + 200, duration: 0, onComplete() {
+                if (overlayCanvas) confettiFn({
+                    y: overlayCanvas.height * 0.3,
+                    count: 100,
+                    shape: 'star',
+                    colors: [brandColor]
+                });
+            }
+        });
+
+        return {
+            timeline: tl, play() {
+                tl.play();
+            }, destroy() {
+                tl.destroy?.();
+            }
+        };
+    },
+
+    /**
+     * 23. Spark Impact — Click-to-explode with sparks, fireworks, and camera shake.
+     * Composes: lite-sparks + lite-fireworks + lite-camera
+     */
+    sparkImpact(canvas, options = {}) {
+        const {maxSparks = 5000, maxFireworks = 3000, shakeIntensity = 8} = options;
+        const ctx = canvas.getContext('2d');
+        const sparks = new SparkEngine(maxSparks);
+        const fireworks = new FireworksEngine(maxFireworks);
+        const cam = new Camera({smoothing: 0.05});
+        let w = canvas.width, h = canvas.height;
+
+        function explodeAt(x, y) {
+            sparks.burst(x, y, 80, 0, Math.PI * 2, 200, 800, 0.3, 1.0);
+            fireworks.explode(x, y, Math.floor(Math.random() * fireworks.colors.length));
+            cam.shake(shakeIntensity, 0.3);
+        }
+
+        function update(dt) {
+            cam.update(dt);
+            const {x: offX, y: offY} = cam.getOffset();
+            ctx.save();
+            ctx.translate(offX, offY);
+            fireworks.updateAndDraw(ctx, dt, w, h);
+            sparks.updateAndDraw(ctx, dt, w, h);
+            ctx.restore();
+        }
+
+        return {
+            explodeAt, update, sparks, fireworks, cam, destroy() {
+                sparks.destroy();
+                fireworks.destroy();
+            }
+        };
+    },
+
+    /**
+     * 24. Audio Reactive VFX — Particles respond to audio beats.
+     * Composes: lite-audio-pool + lite-embers + lite-ease + lite-gradient
+     */
+    audioReactiveVFX(canvas, options = {}) {
+        const {maxEmbers = 4000} = options;
+        const ctx = canvas.getContext('2d');
+        const embers = new EmberEngine(maxEmbers, {buoyancy: 200, driftAmplitude: 40});
+        let audioCtx = null, analyser = null, freqData = null;
+
+        function connectAudio(sourceNode) {
+            if (!audioCtx) audioCtx = sourceNode.context;
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 256;
+            freqData = new Uint8Array(analyser.frequencyBinCount);
+            sourceNode.connect(analyser);
+        }
+
+        function update(dt, w, h) {
+            let energy = 0;
+            if (analyser && freqData) {
+                analyser.getByteFrequencyData(freqData);
+                for (let i = 0; i < 16; i++) energy += freqData[i];
+                energy /= 16 * 255;
+            }
+
+            if (energy > 0.3) {
+                embers.config.density = 5 + energy * 30;
+                embers.config.buoyancy = 100 + energy * 300;
+            } else {
+                embers.config.density = 3;
+                embers.config.buoyancy = 120;
+            }
+
+            embers.spawn(dt, w, h, w * 0.3, h - 50, w * 0.4, 30);
+            embers.updateAndDraw(ctx, dt, w, h);
+        }
+
+        return {
+            connectAudio, update, embers, destroy() {
+                embers.destroy();
+            }
+        };
+    },
+};
 export default Recipes;
