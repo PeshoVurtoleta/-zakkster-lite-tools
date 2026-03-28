@@ -105,9 +105,24 @@ export {createTimeline} from '@zakkster/lite-timeline';
 export {GestureTracker} from '@zakkster/lite-gesture';
 export {confetti, createConfetti} from '@zakkster/lite-confetti';
 export {liteId} from '@zakkster/lite-id';
-export {Vec2} from '@zakkster/lite-vec';
+export {vec2} from '@zakkster/lite-vec';
 export {
-    Seek, Flee, Wander, Arrive, Pursuit, Evade, PathFollow, Separation, Alignment, Cohesion, Flock
+    seek,
+    flee,
+    wander,
+    arrive,
+    followFlow,
+    wrap,
+    bounce,
+    avoidEdges,
+    orbit,
+    swirlToward,
+    alignment,
+    cohesion,
+    separation,
+    curl,
+    projectToSegment,
+    followPath
 }from '@zakkster/lite-steer';
 
 // Game layer
@@ -168,8 +183,8 @@ import {createTimeline} from '@zakkster/lite-timeline';
 import {GestureTracker} from '@zakkster/lite-gesture';
 import {confetti as confettiFn} from '@zakkster/lite-confetti';
 import {liteId} from '@zakkster/lite-id';
-import {Vec2} from '@zakkster/lite-vec';
-import {Flock, Wander, Separation, Alignment, Cohesion} from '@zakkster/lite-steer';
+import {vec2} from '@zakkster/lite-vec';
+import {separation, wander, alignment, cohesion} from '@zakkster/lite-steer';
 import {BitmapFont} from '@zakkster/lite-bmfont';
 import {InputVectorizer} from '@zakkster/lite-gamepad';
 import {CinematicCamera} from '@zakkster/lite-camera';

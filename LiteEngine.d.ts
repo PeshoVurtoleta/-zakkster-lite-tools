@@ -95,38 +95,87 @@ export {PointerTracker} from 'lite-pointer-tracker';
 // ═══════════════════════════════════════════════════════════
 
 // Animation primitives
-export { easeInQuad, easeOutQuad, easeInOutQuad, easeInCubic, easeOutCubic, easeInOutCubic, easeInQuart, easeOutQuart, easeInOutQuart, easeInQuint, easeOutQuint, easeInOutQuint, easeInSine, easeOutSine, easeInOutSine, easeInExpo, easeOutExpo, easeInOutExpo, easeInCirc, easeOutCirc, easeInOutCirc, easeInBack, easeOutBack, easeInOutBack, easeInElastic, easeOutElastic, easeInOutElastic, easeInBounce, easeOutBounce, easeInOutBounce, linear } from '@zakkster/lite-ease';
-export { TweenManager } from '@zakkster/lite-tween';
-export { Spring as SpringDamped, SpringPool } from '@zakkster/lite-spring';
-export { Gradient } from '@zakkster/lite-gradient';
-export { seedNoise, simplex2, simplex3, fbm2, fbm3, curl2 } from '@zakkster/lite-noise';
-export { createTimeline } from '@zakkster/lite-timeline';
+export {
+    easeInQuad,
+    easeOutQuad,
+    easeInOutQuad,
+    easeInCubic,
+    easeOutCubic,
+    easeInOutCubic,
+    easeInQuart,
+    easeOutQuart,
+    easeInOutQuart,
+    easeInQuint,
+    easeOutQuint,
+    easeInOutQuint,
+    easeInSine,
+    easeOutSine,
+    easeInOutSine,
+    easeInExpo,
+    easeOutExpo,
+    easeInOutExpo,
+    easeInCirc,
+    easeOutCirc,
+    easeInOutCirc,
+    easeInBack,
+    easeOutBack,
+    easeInOutBack,
+    easeInElastic,
+    easeOutElastic,
+    easeInOutElastic,
+    easeInBounce,
+    easeOutBounce,
+    easeInOutBounce,
+    linear
+} from '@zakkster/lite-ease';
+export {TweenManager} from '@zakkster/lite-tween';
+export {Spring as SpringDamped, SpringPool} from '@zakkster/lite-spring';
+export {Gradient} from '@zakkster/lite-gradient';
+export {seedNoise, simplex2, simplex3, fbm2, fbm3, curl2} from '@zakkster/lite-noise';
+export {createTimeline} from '@zakkster/lite-timeline';
 
 // Interaction + utility
-export { GestureTracker } from '@zakkster/lite-gesture';
-export { confetti, createConfetti } from '@zakkster/lite-confetti';
-export { liteId } from '@zakkster/lite-id';
-export { Vec2 } from '@zakkster/lite-vec';
-export { Seek, Flee, Wander, Arrive, Pursuit, Evade, PathFollow, Separation, Alignment, Cohesion, Flock } from '@zakkster/lite-steer';
+export {GestureTracker} from '@zakkster/lite-gesture';
+export {confetti, createConfetti} from '@zakkster/lite-confetti';
+export {liteId} from '@zakkster/lite-id';
+export {vec2} from '@zakkster/lite-vec';
+export {
+    seek,
+    flee,
+    wander,
+    arrive,
+    followFlow,
+    wrap,
+    bounce,
+    avoidEdges,
+    orbit,
+    swirlToward,
+    alignment,
+    cohesion,
+    separation,
+    curl,
+    projectToSegment,
+    followPath
+}from '@zakkster/lite-steer';
 
 // Game layer
-export { BitmapFont } from '@zakkster/lite-bmfont';
-export { InputVectorizer } from '@zakkster/lite-gamepad';
-export { CinematicCamera } from '@zakkster/lite-camera';
-export { SpatialGrid } from '@zakkster/lite-spatial';
-export { testPolygonPolygon, translatePoly, rotatePoly } from '@zakkster/lite-sat';
-export { Pathfinder } from '@zakkster/lite-path';
-export { VisibilityCaster } from '@zakkster/lite-shadow';
-export { WFC } from '@zakkster/lite-wfc';
-export { AudioPool } from '@zakkster/lite-audio-pool';
+export {BitmapFont} from '@zakkster/lite-bmfont';
+export {InputVectorizer} from '@zakkster/lite-gamepad';
+export {CinematicCamera} from '@zakkster/lite-camera';
+export {SpatialGrid} from '@zakkster/lite-spatial';
+export {testPolygonPolygon, translatePoly, rotatePoly} from '@zakkster/lite-sat';
+export {Pathfinder} from '@zakkster/lite-path';
+export {VisibilityCaster} from '@zakkster/lite-shadow';
+export {WFC} from '@zakkster/lite-wfc';
+export {AudioPool} from '@zakkster/lite-audio-pool';
 
 // VFX engines
-export { FireworksEngine } from '@zakkster/lite-fireworks';
-export { SparkEngine } from '@zakkster/lite-sparks';
-export { RainEngine } from '@zakkster/lite-rain';
-export { SnowEngine } from '@zakkster/lite-snow';
-export { EmberEngine } from '@zakkster/lite-embers';
-export { SmokeEngine } from '@zakkster/lite-smoke';
+export {FireworksEngine} from '@zakkster/lite-fireworks';
+export {SparkEngine} from '@zakkster/lite-sparks';
+export {RainEngine} from '@zakkster/lite-rain';
+export {SnowEngine} from '@zakkster/lite-snow';
+export {EmberEngine} from '@zakkster/lite-embers';
+export {SmokeEngine} from '@zakkster/lite-smoke';
 
 
 // ═══════════════════════════════════════════════════════════
@@ -322,15 +371,21 @@ export declare const Recipes: {
 
 export interface RetroArcadeTextResult extends Destroyable {
     addDamage(x: number, y: number, value: number): void;
+
     update(dt: number): void;
+
     getScore(): number;
+
     resetScore(): void;
 }
 
 export interface ProceduralWorldResult extends Destroyable {
     cam: CinematicCamera;
+
     render(dt: number): void;
+
     moveTo(x: number, y: number): void;
+
     reseed(s?: number): void;
 }
 
@@ -339,36 +394,46 @@ export interface DungeonGeneratorResult extends Destroyable {
     width: number;
     height: number;
     spatial: SpatialGrid;
+
     isWalkable(x: number, y: number): boolean;
+
     findPath(sx: number, sy: number, ex: number, ey: number): Array<{ x: number; y: number }> | null;
+
     renderToCanvas(ctx: CanvasRenderingContext2D, tileSize?: number): void;
 }
 
 export interface CampfireSceneResult extends Destroyable {
     embers: EmberEngine;
     smoke: SmokeEngine;
+
     update(dt: number, w: number, h: number): void;
 }
 
 export interface WeatherSystemResult extends Destroyable {
     update(dt: number, w: number, h: number): void;
+
     setWind(v: number): void;
+
     setMode(m: 'rain' | 'snow'): void;
+
     getMode(): string;
 }
 
 export interface BoidsSimulationResult extends Destroyable {
     agents: Array<{ id: number; x: number; y: number; vx: number; vy: number; hue: number }>;
+
     update(dt: number): void;
 }
 
 export interface GestureCarouselResult extends Destroyable {
     goTo(index: number): void;
+
     getCurrentIndex(): number;
 }
 
 export interface TimelineShowcaseResult extends Destroyable {
-    timeline: Timeline;
+    timeline: ReturnType<typeof createTimeline>;
+
     play(): void;
 }
 
@@ -376,13 +441,17 @@ export interface SparkImpactResult extends Destroyable {
     sparks: SparkEngine;
     fireworks: FireworksEngine;
     cam: CinematicCamera;
+
     explodeAt(x: number, y: number): void;
+
     update(dt: number): void;
 }
 
 export interface AudioReactiveVFXResult extends Destroyable {
     embers: EmberEngine;
+
     connectAudio(sourceNode: AudioNode): void;
+
     update(dt: number, w: number, h: number): void;
 }
 
