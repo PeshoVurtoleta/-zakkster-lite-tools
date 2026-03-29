@@ -1031,7 +1031,11 @@ export const Recipes = {
         const ctx = canvas.getContext('2d');
         const rng = new Random(seed);
         seedNoise(seed);
-        const cam = new CinematicCamera({smoothing: 0.08, deadzone: 40});
+        const w = canvas.width || 800, h = canvas.height || 600;
+        const cam = new CinematicCamera(w, h, w * 4, h * 4, seed);
+        cam.lerpSpeed = 5.0;
+        cam.deadzoneX = 40;
+        cam.deadzoneY = 40;
         const gradient = new Gradient([
             {l: 0.2, c: 0.15, h: 220}, // deep water
             {l: 0.4, c: 0.2, h: 200},  // shallow
@@ -1040,12 +1044,12 @@ export const Recipes = {
             {l: 0.65, c: 0.08, h: 60},  // mountain
             {l: 0.95, c: 0.02, h: 0},   // snow
         ]);
-        let target = {x: 0, y: 0};
+        const _colorOut = {l: 0, c: 0, h: 0};
+        let target = {x: w * 2, y: h * 2};
 
         function render(dt) {
-            cam.follow(target.x, target.y, dt);
-            const {x: camX, y: camY} = cam.getPosition();
-            const w = canvas.width, h = canvas.height;
+            cam.update(dt, target.x, target.y);
+            const camX = cam.pos[0], camY = cam.pos[1];
             const cols = Math.ceil(w / cellSize) + 2;
             const rows = Math.ceil(h / cellSize) + 2;
             const offX = Math.floor(camX / cellSize);
@@ -1056,8 +1060,8 @@ export const Recipes = {
                     const wx = (offX + c) * scale;
                     const wy = (offY + r) * scale;
                     const n = fbm2(wx, wy, 5, 2.0, 0.5) * 0.5 + 0.5;
-                    const color = gradient.at(clamp(n, 0, 1));
-                    ctx.fillStyle = toCssOklch(color);
+                    gradient.at(clamp(n, 0, 1), _colorOut);
+                    ctx.fillStyle = toCssOklch(_colorOut);
                     ctx.fillRect((c - (camX / cellSize - offX)) * cellSize, (r - (camY / cellSize - offY)) * cellSize, cellSize + 1, cellSize + 1);
                 }
             }
@@ -1072,6 +1076,8 @@ export const Recipes = {
                 seedNoise(s);
             },
             destroy() {
+                cam.destroy();
+                gradient.destroy();
             },
         };
     },
@@ -1084,7 +1090,7 @@ export const Recipes = {
         const {width = 32, height = 32, seed = Date.now()} = options;
         const rng = new Random(seed);
         const grid = new Uint8Array(width * height); // 0=wall, 1=floor
-        const spatial = new SpatialGrid(width * 4, height * 4, 32);
+        const spatial = new SpatialGrid(width * 4, height * 4, 32, 1000);
 
         // Simple noise-based dungeon
         for (let y = 0; y < height; y++) {
@@ -1210,7 +1216,8 @@ export const Recipes = {
         const ctx = canvas.getContext('2d');
         const rng = new Random(seed);
         const w = canvas.width, h = canvas.height;
-        const spatial = new SpatialGrid(w, h, 64);
+        const spatial = new SpatialGrid(w, h, 64, count);
+        const _queryBuf = new Int32Array(64);
         const agents = [];
 
         for (let i = 0; i < count; i++) {
@@ -1223,28 +1230,32 @@ export const Recipes = {
 
         function update(dt) {
             spatial.clear();
-            for (const a of agents) spatial.insert(a, a.x, a.y, 4, 4);
+            for (const a of agents) spatial.insert(a.id, a.x, a.y);
 
             for (const a of agents) {
-                const neighbors = spatial.query(a.x - 60, a.y - 60, 120, 120).filter(n => n.id !== a.id);
-                if (neighbors.length > 0) {
-                    let sx = 0, sy = 0, ax = 0, ay = 0, cx = 0, cy = 0;
-                    for (const n of neighbors) {
-                        const dx = a.x - n.x, dy = a.y - n.y;
-                        const d = Math.sqrt(dx * dx + dy * dy) || 1;
-                        if (d < 25) {
-                            sx += dx / d;
-                            sy += dy / d;
-                        }
-                        ax += n.vx;
-                        ay += n.vy;
-                        cx += n.x;
-                        cy += n.y;
+                const n = spatial.queryRadius(a.x, a.y, 60, _queryBuf, true);
+                let sx = 0, sy = 0, ax = 0, ay = 0, cx = 0, cy = 0, nc = 0;
+                for (let j = 0; j < n; j++) {
+                    const nId = _queryBuf[j];
+                    if (nId === a.id) continue;
+                    const nb = agents[nId];
+                    nc++;
+                    const dx = a.x - nb.x, dy = a.y - nb.y;
+                    const d = Math.sqrt(dx * dx + dy * dy) || 1;
+                    if (d < 25) {
+                        sx += dx / d;
+                        sy += dy / d;
                     }
-                    ax /= neighbors.length;
-                    ay /= neighbors.length;
-                    cx /= neighbors.length;
-                    cy /= neighbors.length;
+                    ax += nb.vx;
+                    ay += nb.vy;
+                    cx += nb.x;
+                    cy += nb.y;
+                }
+                if (nc > 0) {
+                    ax /= nc;
+                    ay /= nc;
+                    cx /= nc;
+                    cy /= nc;
                     a.vx += (sx * 2 + (ax - a.vx) * 0.05 + (cx - a.x) * 0.01) * dt;
                     a.vy += (sy * 2 + (ay - a.vy) * 0.05 + (cy - a.y) * 0.01) * dt;
                 }
@@ -1281,7 +1292,7 @@ export const Recipes = {
 
         return {
             agents, update, destroy() {
-                spatial.clear();
+                spatial.destroy();
                 agents.length = 0;
             }
         };
@@ -1299,7 +1310,6 @@ export const Recipes = {
             }, destroy() {
             }
         };
-        const gesture = new GestureTracker(el);
         let currentIndex = 0, offsetX = 0;
         const slideWidth = el.clientWidth || 300;
 
@@ -1309,7 +1319,7 @@ export const Recipes = {
             const startX = offsetX;
             const tl = createTimeline();
             tl.add({
-                duration: 400, onUpdate(t) {
+                delay: 0, duration: 400, onUpdate(t) {
                     offsetX = startX + (targetX - startX) * easeOutCubic(t);
                     renderSlides();
                 }
@@ -1324,15 +1334,16 @@ export const Recipes = {
             }
         }
 
-        gesture.on('panEnd', (e) => {
-            if (e.velocityX < -0.3 || e.deltaX < -slideWidth * 0.3) goTo(currentIndex + 1);
-            else if (e.velocityX > 0.3 || e.deltaX > slideWidth * 0.3) goTo(currentIndex - 1);
-            else goTo(currentIndex);
-        });
-
-        gesture.on('pan', (e) => {
-            offsetX = -currentIndex * slideWidth + e.deltaX;
-            renderSlides();
+        const gesture = GestureTracker(el, {
+            onPanMove(e) {
+                offsetX = -currentIndex * slideWidth + e.dx;
+                renderSlides();
+            },
+            onPanEnd(e) {
+                if (e.vx < -300 || e.dx < -slideWidth * 0.3) goTo(currentIndex + 1);
+                else if (e.vx > 300 || e.dx > slideWidth * 0.3) goTo(currentIndex - 1);
+                else goTo(currentIndex);
+            },
         });
 
         renderSlides();
@@ -1395,24 +1406,25 @@ export const Recipes = {
      * Composes: lite-sparks + lite-fireworks + lite-camera
      */
     sparkImpact(canvas, options = {}) {
-        const {maxSparks = 5000, maxFireworks = 3000, shakeIntensity = 8} = options;
+        const {maxSparks = 5000, maxFireworks = 3000, shakeIntensity = 0.6} = options;
         const ctx = canvas.getContext('2d');
         const sparks = new SparkEngine(maxSparks);
         const fireworks = new FireworksEngine(maxFireworks);
-        const cam = new CinematicCamera({smoothing: 0.05});
         let w = canvas.width, h = canvas.height;
+        const cam = new CinematicCamera(w, h, w, h, 42);
+        cam.lerpSpeed = 20.0;
+        cam.shakeMaxOffset = 12;
 
         function explodeAt(x, y) {
             sparks.burst(x, y, 80, 0, Math.PI * 2, 200, 800, 0.3, 1.0);
             fireworks.explode(x, y, Math.floor(Math.random() * fireworks.colors.length));
-            cam.shake(shakeIntensity, 0.3);
+            cam.addTrauma(shakeIntensity);
         }
 
         function update(dt) {
-            cam.update(dt);
-            const {x: offX, y: offY} = cam.getOffset();
+            cam.update(dt, w * 0.5, h * 0.5);
             ctx.save();
-            ctx.translate(offX, offY);
+            cam.apply(ctx);
             fireworks.updateAndDraw(ctx, dt, w, h);
             sparks.updateAndDraw(ctx, dt, w, h);
             ctx.restore();
@@ -1422,6 +1434,7 @@ export const Recipes = {
             explodeAt, update, sparks, fireworks, cam, destroy() {
                 sparks.destroy();
                 fireworks.destroy();
+                cam.destroy();
             }
         };
     },
