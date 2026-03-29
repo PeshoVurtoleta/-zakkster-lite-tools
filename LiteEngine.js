@@ -251,13 +251,18 @@ export const Recipes = {
         }
 
         const theme = generateTheme(brandColor, {mode: 'dark'});
-        const gradient = createGradient([theme.bg, theme.bgMuted, theme.surface, theme.accent], easeOut);
+        const grad = new Gradient([theme.bg, theme.bgMuted, theme.surface, theme.accent]);
         const gen = new GenEngine(canvas, {seed});
         const field = new FlowField({noise: gen.noise, scale: 0.004, strength: 3, zSpeed: 0.2});
 
         if (animate) {
+            // Pre-calculate static background fill (runs once, not per-frame)
+            const bgFillStr = toCssOklch({l: theme.bg.l, c: theme.bg.c, h: theme.bg.h, a: 0.05});
+            // Pre-allocate reusable color object for hot path
+            const tempColor = {l: 0, c: 0, h: 0, a: 0.08};
+
             gen.draw(({art, rng, dt}) => {
-                art.ctx.fillStyle = toCssOklch({...theme.bg, a: 0.05});
+                art.ctx.fillStyle = bgFillStr;
                 art.ctx.fillRect(0, 0, art.width, art.height);
                 field.update(dt);
                 for (let i = 0; i < 3; i++) {
@@ -271,7 +276,9 @@ export const Recipes = {
                         if (px < 0 || px > art.width || py < 0 || py > art.height) break;
                         art.ctx.lineTo(px, py);
                     }
-                    art.ctx.strokeStyle = toCssOklch({...gradient(rng.next()), a: 0.08});
+                    grad.at(rng.next(), tempColor);
+                    tempColor.a = 0.08;
+                    art.ctx.strokeStyle = toCssOklch(tempColor);
                     art.ctx.lineWidth = 1 + rng.next() * 2;
                     art.ctx.stroke();
                 }
@@ -280,23 +287,21 @@ export const Recipes = {
         } else {
             gen.draw(({art, rng}) => {
                 art.background(theme.bg);
+                const _c = {l: 0, c: 0, h: 0};
                 Pattern.flowTrace(art, {
-                    field,
-                    rng,
-                    particleCount: 800,
-                    steps: 300,
-                    stepSize: 1.5,
-                    colorFn: (_, t) => gradient(t),
-                    lineWidth: 0.6,
-                    alpha: 0.12
+                    field, rng,
+                    particleCount: 800, steps: 300, stepSize: 1.5,
+                    colorFn: (_, t) => { grad.at(t, _c); return _c; },
+                    lineWidth: 0.6, alpha: 0.12
                 });
             });
             gen.render();
         }
 
         return {
-            gen, field, theme, gradient, destroy() {
+            gen, field, theme, gradient: grad, destroy() {
                 gen.destroy();
+                grad.destroy();
             }
         };
     },
@@ -355,8 +360,10 @@ export const Recipes = {
         }
 
         const fx = new FXSystem(ctx, {maxParticles, seed});
-        let removeWell = fx.addForce(new GravityWell(centerX, centerY, wellStrength, 600));
-        let removeVortex = fx.addForce(new Vortex(centerX, centerY, vortexStrength, vortexPull, 600));
+        const well = new GravityWell(centerX, centerY, wellStrength, 600);
+        const vortex = new Vortex(centerX, centerY, vortexStrength, vortexPull, 600);
+        fx.addForce(well);
+        fx.addForce(vortex);
         fx.addForce(new DragField(0.96));
 
         const fire = fx.register(Presets.fire);
@@ -372,10 +379,11 @@ export const Recipes = {
                 fx.spawn(x, y, fire);
             },
             moveTo(x, y) {
-                removeWell();
-                removeVortex();
-                removeWell = fx.addForce(new GravityWell(x, y, wellStrength, 600));
-                removeVortex = fx.addForce(new Vortex(x, y, vortexStrength, vortexPull, 600));
+                // Mutate in place — ZERO garbage generated
+                well.x = x;
+                well.y = y;
+                vortex.x = x;
+                vortex.y = y;
             },
             destroy() {
                 fx.destroy();
@@ -431,9 +439,9 @@ export const Recipes = {
     // ─────────────────────────────────────────────
 
     particleCursor(canvas, {
-        maxParticles = 200,
-        trailColor = {l: 0.9, c: 0.15, h: 50},
-        fadeColor = {l: 0.5, c: 0.2, h: 30},
+        maxParticles = 1000,
+        trailColor = {l: 0.8, c: 0.2, h: 280},
+        fadeColor = {l: 0.5, c: 0.1, h: 220},
         spawnRate = 3,
     } = {}) {
         if (!canvas) {
@@ -442,58 +450,56 @@ export const Recipes = {
         }
         const ctx = canvas.getContext('2d');
         const emitter = new Emitter({maxParticles});
-        let mx = 0, my = 0, active = false;
-
-        const tracker = new PointerTracker(canvas, {
-            onStart(e) {
-                active = true;
-                mx = e.offsetX;
-                my = e.offsetY;
-            },
-            onMove(e) {
-                mx = e.offsetX;
-                my = e.offsetY;
-            },
-            onEnd() {
-                active = false;
-            },
-        });
-        canvas.addEventListener('mousemove', (e) => {
-            mx = e.offsetX;
-            my = e.offsetY;
-            active = true;
-        });
-        canvas.addEventListener('mouseleave', () => {
-            active = false;
-        });
-
+        const tracker = new PointerTracker(canvas);
         const ticker = new Ticker();
+
+        // Pre-compute palette of CSS strings (runs once at init)
+        const palette = [];
+        for (let i = 0; i <= 10; i++) {
+            palette.push(toCssOklch(lerpOklch(trailColor, fadeColor, i / 10)));
+        }
+
+        // Pre-allocate a single spawn config object (mutated per-emit, zero GC)
+        const spawnConfig = {
+            x: 0, y: 0, vx: 0, vy: 0, gravity: -15, drag: 0.96,
+            life: 0, maxLife: 1.0, size: 0, color: ''
+        };
+
+        let mx = 0, my = 0, active = false;
+        canvas.addEventListener('mousemove', (e) => { mx = e.offsetX; my = e.offsetY; active = true; });
+        canvas.addEventListener('mouseleave', () => { active = false; });
+        canvas.addEventListener('touchmove', (e) => {
+            const t = e.touches[0], r = canvas.getBoundingClientRect();
+            mx = t.clientX - r.left; my = t.clientY - r.top; active = true;
+        }, {passive: true});
+        canvas.addEventListener('touchend', () => { active = false; });
+
         ticker.add((dt) => {
-            const dtSec = dt / 1000;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
             if (active) {
                 for (let i = 0; i < spawnRate; i++) {
-                    emitter.emit({
-                        x: mx + (Math.random() - 0.5) * 10,
-                        y: my + (Math.random() - 0.5) * 10,
-                        vx: (Math.random() - 0.5) * 40,
-                        vy: -Math.random() * 30 - 10,
-                        gravity: -15,
-                        drag: 0.96,
-                        life: 0.5 + Math.random() * 0.3,
-                        maxLife: 0.8,
-                        size: 2 + Math.random() * 3
-                    });
+                    spawnConfig.x = mx + (Math.random() - 0.5) * 10;
+                    spawnConfig.y = my + (Math.random() - 0.5) * 10;
+                    spawnConfig.vx = (Math.random() - 0.5) * 40;
+                    spawnConfig.vy = -Math.random() * 30 - 10;
+                    spawnConfig.life = 0.5 + Math.random() * 0.5;
+                    spawnConfig.size = 2 + Math.random() * 4;
+                    spawnConfig.color = palette[Math.floor(Math.random() * palette.length)];
+                    emitter.emit(spawnConfig);
                 }
             }
-            emitter.update(dtSec);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            emitter.update(dt);
+            ctx.globalCompositeOperation = 'screen';
             emitter.draw(ctx, (c, p, life) => {
-                const color = lerpOklch(fadeColor, trailColor, life);
-                c.fillStyle = toCssOklch({...color, a: life * life});
+                c.fillStyle = p.color;
+                c.globalAlpha = life;
                 c.beginPath();
                 c.arc(p.x, p.y, p.size * life, 0, Math.PI * 2);
                 c.fill();
             });
+            ctx.globalCompositeOperation = 'source-over';
         });
         ticker.start();
 
@@ -512,37 +518,44 @@ export const Recipes = {
     //  lite-gen + lite-random + lite-color + lite-viewport
     // ─────────────────────────────────────────────
 
-    starfield(canvas, {seed = 42, starCount = 500, twinkleSpeed = 2} = {}) {
+    starfield(canvas, {seed = 42, starCount = 400, twinkleSpeed = 2} = {}) {
         if (!canvas) {
             console.warn('@zakkster/lite-tools [starfield]: canvas required');
             return _NOOP;
         }
+        const ctx = canvas.getContext('2d');
         const viewport = new Viewport({canvas, autoResize: true});
         const rng = new Random(seed);
         const stars = [];
         for (let i = 0; i < starCount; i++) {
             stars.push({
-                x: rng.next(),
-                y: rng.next(),
-                size: 0.5 + rng.next() * 2,
-                speed: 0.5 + rng.next() * 3,
-                phase: rng.next() * Math.PI * 2,
-                hue: rng.chance(0.1) ? rng.range(200, 280) : rng.range(40, 70),
-                bright: rng.chance(0.05)
+                x: rng.next(), y: rng.next(),
+                sz: 0.5 + rng.next() * 2, sp: 0.5 + rng.next() * 3,
+                ph: rng.next() * Math.PI * 2,
+                h: rng.next() < 0.1 ? rng.range(200, 280) : rng.range(40, 70),
+                br: rng.next() < 0.05,
             });
         }
+        // Pre-allocate a single color object for all stars (zero GC in hot path)
+        const _tc = {l: 0, c: 0, h: 0, a: 0};
         const ticker = new Ticker();
+        let t0 = performance.now();
+
         ticker.add(() => {
-            const {ctx, width, height} = viewport;
-            const time = ticker.time / 1000;
+            const time = (performance.now() - t0) / 1000;
+            const {width: W, height: H} = viewport;
             ctx.fillStyle = '#04040a';
-            ctx.fillRect(0, 0, width, height);
-            for (const s of stars) {
-                const tw = (Math.sin(time * s.speed * twinkleSpeed + s.phase) + 1) / 2;
-                const l = s.bright ? 0.85 + tw * 0.15 : 0.5 + tw * 0.3;
-                ctx.fillStyle = toCssOklch({l, c: s.bright ? 0.05 : 0.02, h: s.hue, a: 0.3 + tw * 0.7});
+            ctx.fillRect(0, 0, W, H);
+            for (let i = 0; i < starCount; i++) {
+                const s = stars[i];
+                const tw = (Math.sin(time * s.sp * twinkleSpeed + s.ph) + 1) / 2;
+                _tc.l = s.br ? 0.85 + tw * 0.15 : 0.5 + tw * 0.3;
+                _tc.c = s.br ? 0.05 : 0.02;
+                _tc.h = s.h;
+                _tc.a = 0.3 + tw * 0.7;
+                ctx.fillStyle = toCssOklch(_tc);
                 ctx.beginPath();
-                ctx.arc(s.x * width, s.y * height, s.size * (0.8 + tw * 0.4), 0, Math.PI * 2);
+                ctx.arc(s.x * W, s.y * H, s.sz * (0.8 + tw * 0.4), 0, Math.PI * 2);
                 ctx.fill();
             }
         });
@@ -613,46 +626,66 @@ export const Recipes = {
 
 
     // ─────────────────────────────────────────────
-    //  🗺️ 8. Interactive Noise Heatmap
-    //  lite-gen + lite-color + lite-random
+    //  🗺️ 8. Noise Terrain Heatmap
+    //  lite-noise + lite-gradient + lite-color
     // ─────────────────────────────────────────────
 
     noiseHeatmap(canvas, {
-        seed = 42, scale = 0.008, cellSize = 6, animate = true,
-        gradient: gradColors = [
-            {l: 0.15, c: 0.08, h: 260}, {l: 0.4, c: 0.15, h: 200},
-            {l: 0.55, c: 0.2, h: 130}, {l: 0.7, c: 0.18, h: 90},
-            {l: 0.85, c: 0.1, h: 40}, {l: 0.95, c: 0.02, h: 0},
+        seed = 42, scale = 0.02, cellSize = 4, animate = false,
+        gradientColors = [
+            {l: 0.15, c: 0.10, h: 240}, {l: 0.35, c: 0.15, h: 210},
+            {l: 0.50, c: 0.18, h: 130}, {l: 0.60, c: 0.08, h: 50},
+            {l: 0.92, c: 0.02, h: 0},
         ],
     } = {}) {
         if (!canvas) {
             console.warn('@zakkster/lite-tools [noiseHeatmap]: canvas required');
             return _NOOP;
         }
-        const gen = new GenEngine(canvas, {seed});
-        const gradient = createGradient(gradColors, easeInOut);
+        const ctx = canvas.getContext('2d');
+        const grad = new Gradient(gradientColors);
+        // Pre-allocate a single color object (saves 30,000+ allocs/frame on large canvases)
+        const _tc = {l: 0, c: 0, h: 0};
+        let currentSeed = seed;
+        let t = 0, rafId;
 
-        gen.draw(({art, noise, time}) => {
-            const cols = Math.ceil(art.width / cellSize), rows = Math.ceil(art.height / cellSize);
-            const z = animate ? time * 0.3 : 0;
+        function render(timeOff) {
+            seedNoise(currentSeed);
+            const w = canvas.width, h = canvas.height;
+            const cols = Math.ceil(w / cellSize), rows = Math.ceil(h / cellSize);
             for (let r = 0; r < rows; r++) {
                 for (let c = 0; c < cols; c++) {
-                    const x = c * cellSize, y = r * cellSize;
-                    const n = noise.fbm(x * scale, y * scale, 4, 2, 0.5);
-                    const t = clamp((n + 1) / 2 + Math.sin(z) * 0.05, 0, 1);
-                    art.ctx.fillStyle = toCssOklch(gradient(t));
-                    art.ctx.fillRect(x, y, cellSize, cellSize);
+                    const n = fbm2(c * scale, r * scale + timeOff, 4, 2.0, 0.5);
+                    const val = clamp(n * 0.5 + 0.5, 0, 1);
+                    grad.at(val, _tc);
+                    ctx.fillStyle = toCssOklch(_tc);
+                    ctx.fillRect(c * cellSize, r * cellSize, cellSize + 1, cellSize + 1);
                 }
             }
-        });
+        }
 
-        if (animate) gen.start(); else gen.render();
+        if (animate) {
+            let lt = performance.now();
+            const loop = (now) => {
+                const dt = Math.min((now - lt) / 1000, 0.1); lt = now;
+                t += dt * 0.5;
+                render(t);
+                rafId = requestAnimationFrame(loop);
+            };
+            rafId = requestAnimationFrame(loop);
+        } else {
+            render(0);
+        }
+
         return {
-            gen, gradient, reseed(s) {
-                gen.seed(s ?? Date.now());
-                if (!animate) gen.render();
-            }, destroy() {
-                gen.destroy();
+            gradient: grad,
+            reseed(s) {
+                currentSeed = s ?? (Date.now() | 0);
+                if (!animate) render(0);
+            },
+            destroy() {
+                if (rafId) cancelAnimationFrame(rafId);
+                grad.destroy();
             }
         };
     },
@@ -660,7 +693,7 @@ export const Recipes = {
 
     // ─────────────────────────────────────────────
     //  🎆 9. Choreographed Firework Show
-    //  lite-fx + lite-ticker + lite-random + lite-color
+    //  lite-fireworks + lite-ticker + lite-random
     // ─────────────────────────────────────────────
 
     fireworkShow(ctx, width, height, {maxParticles = 8000, seed = 42, burstInterval = 800} = {}) {
@@ -668,84 +701,64 @@ export const Recipes = {
             console.warn('@zakkster/lite-tools [fireworkShow]: ctx required');
             return _NOOP;
         }
-        const fx = new FXSystem(ctx, {maxParticles, seed});
-        const rng = new Random(seed);
-        const hues = [0, 30, 60, 130, 200, 280, 330];
-        const recipes = hues.map(h => fx.register({
-            count: [30, 60], life: [0.6, 1.2], speed: [80, 250], angle: [0, Math.PI * 2],
-            gravity: 120, friction: 0.96, size: [3, 0],
-            colorFn: createGradient([{l: 1, c: 0, h: 60}, {l: 0.8, c: 0.25, h}, {
-                l: 0.3,
-                c: 0.15,
-                h: (h + 30) % 360
-            }], easeOut),
-            blendMode: 'screen', shape: 'circle',
-        }));
-        fx.addForce(new DragField(0.97));
-        fx.start();
+        const engine = new FireworksEngine(maxParticles, {seed});
         const ticker = new Ticker();
-        let running = true;
-        ticker.setInterval(() => {
-            if (!running) return;
-            fx.spawn(rng.range(width * 0.15, width * 0.85), rng.range(height * 0.15, height * 0.5), rng.pick(recipes), {shape: (r) => EmitterShape.circle(15, r)});
-        }, burstInterval);
+        const rng = new Random(seed);
+        let timeSinceLastBurst = 0, isAuto = true;
+
+        ticker.add((dt) => {
+            ctx.fillStyle = 'rgba(10,10,10,0.2)';
+            ctx.fillRect(0, 0, width, height);
+
+            if (isAuto) {
+                timeSinceLastBurst += dt * 1000;
+                if (timeSinceLastBurst >= burstInterval) {
+                    timeSinceLastBurst = 0;
+                    engine.launch(
+                        width * 0.2 + rng.next() * width * 0.6,
+                        height,
+                        height * 0.1 + rng.next() * height * 0.4
+                    );
+                }
+            }
+            engine.updateAndDraw(ctx, dt, width, height);
+        });
         ticker.start();
 
         return {
-            fx, ticker,
-            stop() {
-                running = false;
-            }, resume() {
-                running = true;
-            },
-            manualBurst(x, y) {
-                fx.spawn(x, y, rng.pick(recipes));
-            },
-            destroy() {
-                ticker.destroy();
-                fx.destroy();
-            },
+            fx: engine, ticker,
+            stop() { isAuto = false; },
+            resume() { isAuto = true; },
+            manualBurst(x, y) { engine.launch(x, height, y); },
+            destroy() { ticker.destroy(); engine.destroy(); },
         };
     },
 
 
     // ─────────────────────────────────────────────
-    //  ❄️ 10. Ambient Snowfall
-    //  lite-fx + lite-gen (turbulence) + lite-color
+    //  ❄️ 10. Cinematic Snowfall
+    //  lite-snow + lite-ticker
     // ─────────────────────────────────────────────
 
-    snowfall(ctx, width, height, {maxParticles = 3000, seed = 42, windStrength = 30, turbulenceStrength = 60} = {}) {
+    snowfall(ctx, width, height, {maxParticles = 8000, seed = 42, windStrength = 100, turbulenceStrength = 20} = {}) {
         if (!ctx) {
             console.warn('@zakkster/lite-tools [snowfall]: ctx required');
             return _NOOP;
         }
-        const fx = new FXSystem(ctx, {maxParticles, seed});
-        const snow = fx.register({
-            count: [1, 3], life: [4, 8], speed: [10, 30], angle: [Math.PI / 2 - 0.3, Math.PI / 2 + 0.3],
-            gravity: 15, friction: 0.99, size: [2, 4],
-            colorFn: (t) => ({l: 0.9 + t * 0.1, c: 0.01, h: 220}), blendMode: 'source-over', shape: 'circle',
-        });
-        let windForce = new Wind(windStrength, 0);
-        fx.addForce(windForce);
-        fx.addForce(new Turbulence(turbulenceStrength, 0.008, 0.5));
-        fx.start();
+        const snow = new SnowEngineV2(maxParticles, {seed, wind: windStrength, turbulence: turbulenceStrength});
         const ticker = new Ticker();
-        ticker.setInterval(() => {
-            fx.spawn(fx.rng.range(-50, width + 50), -20, snow, {shape: (r) => EmitterShape.line(width * 0.3, r)});
-        }, 50);
+
+        ticker.add((dt) => {
+            ctx.clearRect(0, 0, width, height);
+            snow.spawn(dt, width, height);
+            snow.updateAndDraw(ctx, dt, width, height);
+        });
         ticker.start();
 
         return {
-            fx, ticker,
-            setWind(s) {
-                fx.forces = fx.forces.filter(f => f !== windForce);
-                windForce = new Wind(s, 0);
-                fx.addForce(windForce);
-            },
-            destroy() {
-                ticker.destroy();
-                fx.destroy();
-            },
+            fx: snow, ticker,
+            setWind(w) { snow.config.wind = w; },
+            destroy() { ticker.destroy(); snow.destroy(); },
         };
     },
 
@@ -787,13 +800,15 @@ export const Recipes = {
     //  lite-random + lite-fx + lite-states
     // ─────────────────────────────────────────────
 
-    replaySystem(ctx, {maxParticles = 5000, seed = Date.now()} = {}) {
+    replaySystem(ctx, {maxParticles = 5000, seed = Date.now(), maxFrames = 3600} = {}) {
         if (!ctx) {
             console.warn('@zakkster/lite-tools [replaySystem]: ctx required');
             return _NOOP;
         }
         const fx = new FXSystem(ctx, {maxParticles, seed});
-        const events = [];
+        // Pre-allocated recording tape: [x, y, time, recipeId] per frame — zero GC during recording
+        const tape = new Float32Array(maxFrames * 4);
+        let tapeHead = 0, tapeLen = 0;
         let startTime = 0, replayRaf = null;
         const fsm = new FSM('idle', {idle: ['recording', 'replaying'], recording: ['idle'], replaying: ['idle']});
         const registeredRecipes = {};
@@ -804,7 +819,8 @@ export const Recipes = {
                 registeredRecipes[name] = fx.register(preset);
             },
             startRecording() {
-                events.length = 0;
+                tapeHead = 0;
+                tapeLen = 0;
                 startTime = performance.now();
                 fx.resetSeed(seed);
                 fx.clear();
@@ -814,13 +830,17 @@ export const Recipes = {
             recordEvent(x, y, name) {
                 if (!fsm.is('recording')) return;
                 const r = registeredRecipes[name];
-                if (!r) return;
-                events.push({time: performance.now() - startTime, x, y, recipeId: r.id});
+                if (!r || tapeHead >= maxFrames * 4) return;
+                tape[tapeHead++] = x;
+                tape[tapeHead++] = y;
+                tape[tapeHead++] = performance.now() - startTime;
+                tape[tapeHead++] = r.id ?? 0;
+                tapeLen = tapeHead / 4;
                 fx.spawn(x, y, r);
             },
             stopRecording() {
                 fsm.set('idle');
-                return [...events];
+                return tapeLen;
             },
             replay() {
                 fsm.set('replaying');
@@ -832,13 +852,15 @@ export const Recipes = {
                 const step = () => {
                     if (!fsm.is('replaying')) return;
                     const t = performance.now() - start;
-                    while (idx < events.length && events[idx].time <= t) {
-                        const e = events[idx];
-                        const r = fx._recipes?.[e.recipeId];
-                        if (r) fx.spawn(e.x, e.y, r);
+                    while (idx < tapeLen) {
+                        const off = idx * 4;
+                        if (tape[off + 2] > t) break;
+                        const rId = tape[off + 3];
+                        const r = fx._recipes?.[rId];
+                        if (r) fx.spawn(tape[off], tape[off + 1], r);
                         idx++;
                     }
-                    if (idx < events.length) replayRaf = requestAnimationFrame(step); else fsm.set('idle');
+                    if (idx < tapeLen) replayRaf = requestAnimationFrame(step); else fsm.set('idle');
                 };
                 replayRaf = requestAnimationFrame(step);
             },
@@ -931,35 +953,25 @@ export const Recipes = {
         const fx = new FXSystem(viewport.ctx, {maxParticles, seed});
         let meter = fps ? new FPSMeter({position: fpsPosition}) : null;
 
-        fsm.onEnter('paused', () => {
-            ticker.pause();
-            fx.stop();
-        });
-        fsm.onEnter('playing', () => {
-            ticker.start();
-            fx.start();
-        });
+        // Ticker runs continuously — FSM state is queried per-tick (no closure leaks)
+        fx.start();
 
         return {
             viewport, ctx: viewport.ctx, ticker, rng, fsm, fx, meter,
-            get width() {
-                return viewport.width;
-            },
-            get height() {
-                return viewport.height;
-            },
+            get width() { return viewport.width; },
+            get height() { return viewport.height; },
             onUpdate(fn) {
-                return ticker.add(fn);
+                // Wraps user callback to only fire during 'playing' state
+                return ticker.add((dt) => {
+                    if (fsm.current === 'playing') fn(dt);
+                });
             },
-            setState(s) {
-                return fsm.set(s);
-            },
-            get state() {
-                return fsm.current;
-            },
+            setState(s) { return fsm.set(s); },
+            get state() { return fsm.current; },
             start() {
                 fsm.set('ready');
                 fsm.set('playing');
+                ticker.start();
             },
             destroy() {
                 ticker.destroy();
@@ -985,6 +997,7 @@ export const Recipes = {
         const font = new BitmapFont(fontImage, fontData);
         const numbers = [];
         let score = 0;
+        let scoreStr = 'SCORE: 0'; // Cached — only rebuilt when score changes
 
         function addDamage(x, y, value) {
             numbers.push({
@@ -992,6 +1005,7 @@ export const Recipes = {
                 startY: y, t: 0, life: 1.2, alpha: 1,
             });
             score += value;
+            scoreStr = 'SCORE: ' + score; // Rebuild once per event, not per frame
             if (numbers.length > maxNumbers) numbers.shift();
         }
 
@@ -1010,12 +1024,13 @@ export const Recipes = {
                 font.draw(ctx, n.value, n.x, n.y, 1, 'center');
             }
             ctx.globalAlpha = 1;
-            font.draw(ctx, `SCORE: ${score}`, 10, 10, 1.5);
+            font.draw(ctx, scoreStr, 10, 10, 1.5);
         }
 
         return {
             addDamage, update, getScore: () => score, resetScore() {
                 score = 0;
+                scoreStr = 'SCORE: 0';
             }, destroy() {
                 numbers.length = 0;
             }

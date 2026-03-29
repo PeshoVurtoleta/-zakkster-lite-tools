@@ -865,7 +865,7 @@ describe('🛠️ LiteTools Recipes', () => {
             const r = Recipes.brandedBackground(mockCanvas(), brand, {animate: false});
             expect(r.gen).toBeDefined();
             expect(r.theme).toBeDefined();
-            expect(r.gradient).toBeTypeOf('function');
+            expect(r.gradient).toBeTypeOf('object');
             r.destroy();
         });
     });
@@ -941,8 +941,8 @@ describe('🛠️ LiteTools Recipes', () => {
             r.startRecording();
             expect(r.fsm.is('recording')).toBe(true);
             r.recordEvent(100, 200, 'boom');
-            const events = r.stopRecording();
-            expect(events.length).toBe(1);
+            const frameCount = r.stopRecording();
+            expect(frameCount).toBe(1);
             r.replay();
             expect(r.fsm.is('replaying')).toBe(true);
             r.stopReplay();

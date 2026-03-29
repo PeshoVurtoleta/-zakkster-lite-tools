@@ -107,7 +107,7 @@ const { gen, theme, destroy } = Recipes.brandedBackground(canvas, { l: 0.6, c: 0
 // Later: destroy() stops the animation and cleans up
 ```
 
-**Composes:** `generateTheme()` → `createGradient()` → `FlowField` → `Pattern.flowTrace()`
+**Composes:** `generateTheme()` → `Gradient` class → `FlowField` → `Pattern.flowTrace()`
 
 </details>
 
@@ -261,7 +261,7 @@ map.reseed();       // new terrain
 map.reseed(12345);  // specific seed
 ```
 
-**Composes:** `GenEngine` + `SimplexNoise.fbm()` + `createGradient()`
+**Composes:** `GenEngine` + `fbm2()` + `Gradient` class
 
 </details>
 
@@ -282,7 +282,7 @@ show.stop();              // pause the auto-show
 show.resume();            // resume
 ```
 
-**Composes:** `FXSystem` + `Ticker.setInterval` + `createGradient()` + `EmitterShape.circle` + `DragField`
+**Composes:** `FXSystem` + `Ticker.setInterval` + `Gradient` class + `EmitterShape.circle` + `DragField`
 
 </details>
 
@@ -444,7 +444,7 @@ world.render(dt);
 world.reseed(9999);
 ```
 
-**Composes:** `Noise.fbm2()` + `Gradient.at()` + `CinematicCamera` (deadzone + smoothing) + `toCssOklch()`
+**Composes:** `fbm2()` + `Gradient.at()` + `CinematicCamera` (deadzone + smoothing) + `toCssOklch()`
 
 </details>
 
@@ -466,7 +466,7 @@ const path = dungeon.findPath(5, 5, 40, 40);
 
 // Spatial queries for nearby entities
 dungeon.spatial.insert(enemy, enemy.x, enemy.y, 8, 8);
-const nearby = dungeon.spatial.query(player.x - 64, player.y - 64, 128, 128);
+const nearby = dungeon.spatial.queryRadius(player.x, player.y, 64, outBuffer, true);
 ```
 
 **Composes:** `Random` + `SpatialGrid` + `Pathfinder`
