@@ -1179,7 +1179,7 @@ export const Recipes = {
             grid, width, height, spatial, isWalkable, findPath, renderToCanvas, destroy() {
             }
         };
-    }
+    },
 
     /**
      * 18. Campfire Scene — Embers rise and die into smoke puffs.
