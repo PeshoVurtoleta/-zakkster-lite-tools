@@ -256,30 +256,36 @@ export const Recipes = {
         const field = new FlowField({noise: gen.noise, scale: 0.004, strength: 3, zSpeed: 0.2});
 
         if (animate) {
-            // Pre-calculate static background fill (runs once, not per-frame)
-            const bgFillStr = toCssOklch({l: theme.bg.l, c: theme.bg.c, h: theme.bg.h, a: 0.05});
-            // Pre-allocate reusable color object for hot path
-            const tempColor = {l: 0, c: 0, h: 0, a: 0.08};
+            // 1. LIGHTER FADE: Change 0.05 to 0.01 or 0.02.
+            // This allows lines to stay on screen for ~50-100 frames instead of 20.
+            const bgFillStr = toCssOklch({l: theme.bg.l, c: theme.bg.c, h: theme.bg.h, a: 0.01});
+
+            const tempColor = {l: 0, c: 0, h: 0, a: 0.15}; // 2. HIGHER LINE ALPHA: 0.08 -> 0.15
 
             gen.draw(({art, rng, dt}) => {
                 art.ctx.fillStyle = bgFillStr;
                 art.ctx.fillRect(0, 0, art.width, art.height);
-                field.update(dt);
-                for (let i = 0; i < 3; i++) {
+
+                field.update(dt / 1000); // Ensure dt is in seconds!
+
+                // 3. MORE SEEDS: Increase i < 3 to i < 15
+                // This spawns more "life" into the field per frame.
+                for (let i = 0; i < 15; i++) {
                     let px = rng.range(0, art.width), py = rng.range(0, art.height);
                     art.ctx.beginPath();
                     art.ctx.moveTo(px, py);
+
                     for (let s = 0; s < 40; s++) {
                         const {vx, vy} = field.sample(px, py);
-                        px += vx * 1.5;
-                        py += vy * 1.5;
+                        px += vx * 2.0; // Slightly faster steps
+                        py += vy * 2.0;
                         if (px < 0 || px > art.width || py < 0 || py > art.height) break;
                         art.ctx.lineTo(px, py);
                     }
+
                     grad.at(rng.next(), tempColor);
-                    tempColor.a = 0.08;
                     art.ctx.strokeStyle = toCssOklch(tempColor);
-                    art.ctx.lineWidth = 1 + rng.next() * 2;
+                    art.ctx.lineWidth = 1 + rng.next() * 1.5;
                     art.ctx.stroke();
                 }
             });
@@ -475,6 +481,9 @@ export const Recipes = {
         canvas.addEventListener('touchend', () => { active = false; });
 
         ticker.add((dt) => {
+            // 1. PATCH: Convert the ticker's milliseconds into seconds
+            const dtSec = dt / 1000;
+
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             if (active) {
@@ -490,7 +499,9 @@ export const Recipes = {
                 }
             }
 
-            emitter.update(dt);
+            // 2. PATCH: Pass the seconds into the physics update!
+            emitter.update(dtSec);
+
             ctx.globalCompositeOperation = 'screen';
             emitter.draw(ctx, (c, p, life) => {
                 c.fillStyle = p.color;
@@ -501,6 +512,7 @@ export const Recipes = {
             });
             ctx.globalCompositeOperation = 'source-over';
         });
+
         ticker.start();
 
         return {
@@ -711,7 +723,7 @@ export const Recipes = {
             ctx.fillRect(0, 0, width, height);
 
             if (isAuto) {
-                timeSinceLastBurst += dt * 1000;
+                timeSinceLastBurst += dt;
                 if (timeSinceLastBurst >= burstInterval) {
                     timeSinceLastBurst = 0;
                     engine.launch(
@@ -1101,6 +1113,10 @@ export const Recipes = {
      * 17. Dungeon Generator — WFC level generation with pathfinding overlay.
      * Composes: lite-wfc + lite-spatial + lite-path
      */
+    /**
+     * 17. Dungeon Generator — WFC level generation with pathfinding overlay.
+     * Composes: lite-wfc + lite-spatial + lite-path
+     */
     dungeonGenerator(options = {}) {
         const {width = 32, height = 32, seed = Date.now()} = options;
         const rng = new Random(seed);
@@ -1127,10 +1143,28 @@ export const Recipes = {
             return x >= 0 && x < width && y >= 0 && y < height && grid[y * width + x] === 1;
         }
 
+        // --- PATCHED PATHFINDING LOGIC ---
+
+        // 1. Instantiate ONCE to take advantage of the O(1) epoch reset
+        // Assuming Pathfinder takes (cols, rows, grid) based on the engine source
+        const finder = new Pathfinder(width, height, grid);
+
+        // 2. Pre-allocate the Zero-GC buffer for the engine to write into
+        // Max possible path length is width * height. 2 floats (x,y) per waypoint.
+        const pathBuffer = new Float32Array(width * height * 2);
+
         function findPath(sx, sy, ex, ey) {
-            const finder = new Pathfinder(width, height, (x, y) => isWalkable(x, y));
-            return finder.find(sx, sy, ex, ey);
+            // 3. Call the correct method with the buffer
+            const waypointCount = finder.findPath(sx, sy, ex, ey, pathBuffer);
+
+            // 4. Format the flat buffer [x, y, x, y] into the expected Array of [x,y] pairs
+            const path = [];
+            for (let i = 0; i < waypointCount; i++) {
+                path.push([pathBuffer[i * 2], pathBuffer[(i * 2) + 1]]);
+            }
+            return path;
         }
+        // ---------------------------------
 
         function renderToCanvas(ctx, tileSize = 16) {
             for (let y = 0; y < height; y++) {
@@ -1145,7 +1179,7 @@ export const Recipes = {
             grid, width, height, spatial, isWalkable, findPath, renderToCanvas, destroy() {
             }
         };
-    },
+    }
 
     /**
      * 18. Campfire Scene — Embers rise and die into smoke puffs.
