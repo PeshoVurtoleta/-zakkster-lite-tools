@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Recipe 17 — Dungeon Generator</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #050508;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Fira Code', monospace;
+        }
+
+        canvas {
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            border: 2px solid #1a1a2e;
+            border-radius: 8px;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(12, 12, 20, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            color: #8b5cf6;
+            border: 1px solid #1a1a2e;
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 8px 16px;
+            background: #8b5cf6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #9f7aea;
+        }
+    </style>
+</head>
+<body>
+
+<div id="ui">
+    <div style="font-weight: bold;">Recipe 17: Dungeon Generator</div>
+    <div style="font-size: 12px; opacity: 0.7; margin-top: 5px;">Zero-GC A* Pathfinding on WFC noise grid</div>
+    <button id="regen">Regenerate Dungeon</button>
+</div>
+
+<canvas id="stage"></canvas>
+
+<script type="module">
+    import {Recipes} from 'https://cdn.jsdelivr.net/npm/@zakkster/lite-tools@2.0.20/+esm';
+
+    const canvas = document.getElementById('stage');
+    const ctx = canvas.getContext('2d');
+
+    const DUNGEON_SIZE = 48;
+    const TILE_SIZE = 14;
+
+    canvas.width = DUNGEON_SIZE * TILE_SIZE;
+    canvas.height = DUNGEON_SIZE * TILE_SIZE;
+
+    function buildAndDraw() {
+        // 1. MOUNT RECIPE
+        const dungeon = Recipes.dungeonGenerator({
+            width: DUNGEON_SIZE, height: DUNGEON_SIZE, seed: Date.now()
+        });
+
+        // 2. RENDER THE BASE GRID
+        dungeon.renderToCanvas(ctx, TILE_SIZE);
+
+        // 3. FIND VALID START AND END POINTS
+        let start = null, end = null;
+
+        // Scan top-left quadrant for a start tile
+        for (let i = 1; i < 15; i++) {
+            for (let j = 1; j < 15; j++) {
+                if (dungeon.isWalkable(i, j)) {
+                    start = {x: i, y: j};
+                    break;
+                }
+            }
+            if (start) break;
+        }
+
+        // Scan bottom-right quadrant for an end tile
+        for (let i = DUNGEON_SIZE - 2; i > DUNGEON_SIZE - 15; i--) {
+            for (let j = DUNGEON_SIZE - 2; j > DUNGEON_SIZE - 15; j--) {
+                if (dungeon.isWalkable(i, j)) {
+                    end = {x: i, y: j};
+                    break;
+                }
+            }
+            if (end) break;
+        }
+
+        // 4. PATHFINDING & OVERLAY
+        if (start && end) {
+
+            // --- THE FIX ---
+            // Now calling your native, ultra-fast engine pathfinder
+            const path = dungeon.findPath(start.x, start.y, end.x, end.y);
+
+            if (path && path.length > 0) {
+                ctx.beginPath();
+                ctx.strokeStyle = '#4facfe';
+                ctx.lineWidth = 3;
+                ctx.lineJoin = 'round';
+
+                // Trace the path
+                path.forEach((p, idx) => {
+                    const px = (p[0] * TILE_SIZE) + (TILE_SIZE / 2);
+                    const py = (p[1] * TILE_SIZE) + (TILE_SIZE / 2);
+                    if (idx === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                });
+                ctx.stroke();
+
+                // Draw Start/End markers
+                ctx.fillStyle = '#4facfe';
+                ctx.fillRect(start.x * TILE_SIZE + 2, start.y * TILE_SIZE + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+                ctx.fillStyle = '#e25822';
+                ctx.fillRect(end.x * TILE_SIZE + 2, end.y * TILE_SIZE + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+            }
+        }
+    }
+
+    // Initial build
+    buildAndDraw();
+
+    // Interaction
+    document.getElementById('regen').addEventListener('click', buildAndDraw);
+
+</script>
+</body>
+</html>

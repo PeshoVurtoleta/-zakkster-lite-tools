@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Recipe 24 — Audio Reactive VFX</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #050508;
+            overflow: hidden;
+            font-family: 'Fira Code', monospace;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(5, 5, 8, 0.8);
+            z-index: 10;
+            transition: opacity 0.5s;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 16px;
+            cursor: pointer;
+            font-family: inherit;
+            background: #8b5cf6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+
+<div id="overlay">
+    <button id="start-btn">Start Audio Engine</button>
+    <p style="color: #666680; margin-top: 15px;">Requires audio permissions</p>
+
+    <audio id="track" src="https://cdn.pixabay.com/download/audio/2022/02/22/audio_d1718ab41b.mp3"
+           crossorigin="anonymous" loop></audio>
+</div>
+
+<canvas id="stage"></canvas>
+
+<script type="module">
+    import {Recipes} from 'https://cdn.jsdelivr.net/npm/@zakkster/lite-tools@2.0.19/+esm';
+
+    const canvas = document.getElementById('stage');
+    const ctx = canvas.getContext('2d');
+    const btn = document.getElementById('start-btn');
+    const audio = document.getElementById('track');
+    const overlay = document.getElementById('overlay');
+
+    // 1. STABLE SIZING (No Viewport.js)
+    let w, h;
+    const dpr = window.devicePixelRatio || 1;
+
+    function resize() {
+        w = window.innerWidth;
+        h = window.innerHeight;
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(dpr, dpr);
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+
+    // 2. MOUNT THE RECIPE
+    // We pass the canvas and configure it for 4000 embers
+    const vfx = Recipes.audioReactiveVFX(canvas, {maxEmbers: 4000});
+
+    // 3. THE HEARTBEAT (The Ticker)
+    let lt = performance.now();
+    let isRunning = false;
+
+    function loop(now) {
+        if (!isRunning) return;
+
+        const dt = Math.min((now - lt) / 1000, 0.1);
+        lt = now;
+
+        // CRITICAL: Clear the background every frame so embers don't smear
+        ctx.fillStyle = '#050508';
+        ctx.fillRect(0, 0, w, h);
+
+        // Drive the internal EmberEngine
+        if (vfx && vfx.update) {
+            vfx.update(dt, w, h);
+        }
+
+        requestAnimationFrame(loop);
+    }
+
+    // 4. AUDIO WIRING & START
+    btn.addEventListener('click', () => {
+        try {
+            // Boot the browser's Audio Engine
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            const audioCtx = new AudioContext();
+
+            // Grab the audio from our <audio> tag
+            const source = audioCtx.createMediaElementSource(audio);
+
+            // Connect it to the visualizer AND to the speakers
+            vfx.connectAudio(source);
+            source.connect(audioCtx.destination);
+
+            // Play the track and hide the button
+            audio.play();
+            overlay.style.opacity = '0';
+            setTimeout(() => overlay.style.display = 'none', 500);
+
+            // Start the visual loop
+            isRunning = true;
+            lt = performance.now();
+            requestAnimationFrame(loop);
+
+        } catch (err) {
+            console.error("Audio Initialization Failed:", err);
+            overlay.innerHTML = `<p style="color: #ff4444;">Error: ${err.message}</p>`;
+        }
+    });
+</script>
+</body>
+</html>

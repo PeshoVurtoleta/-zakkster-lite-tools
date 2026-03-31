@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Recipe 19 — Weather System</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #080818;
+            color: #c8c8e0;
+            font-family: 'Fira Code', monospace;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(12, 12, 20, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #1a1a2e;
+        }
+
+        .title {
+            color: #4facfe;
+            font-weight: bold;
+            margin-bottom: 15px;
+            pointer-events: none;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .row {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 8px 12px;
+            background: #1a1a2e;
+            color: white;
+            border: 1px solid #4facfe;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #4facfe;
+            color: #fff;
+        }
+
+        button.active {
+            background: #4facfe;
+            color: #fff;
+            box-shadow: 0 0 10px rgba(79, 172, 254, 0.4);
+        }
+    </style>
+</head>
+<body>
+
+<div id="ui">
+    <div class="title">Recipe 19: Weather System</div>
+    <div class="controls">
+        <div class="row">
+            <button id="btn-rain" class="active">Heavy Rain</button>
+            <button id="btn-snow">Snow</button>
+        </div>
+        <div class="row">
+            <button id="btn-wind-l">Wind: Left</button>
+            <button id="btn-wind-0">Wind: None</button>
+            <button id="btn-wind-r">Wind: Right</button>
+        </div>
+    </div>
+</div>
+
+<canvas id="stage"></canvas>
+
+<script type="module">
+    import {Recipes} from 'https://cdn.jsdelivr.net/npm/@zakkster/lite-tools@2.0.19/+esm';
+
+    const canvas = document.getElementById('stage');
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+
+    // 1. PHYSICAL SIZING
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+
+    // 2. MOUNT THE RECIPE
+    const weather = Recipes.weatherSystem(canvas, {
+        mode: 'rain',
+        maxParticles: 10000
+    });
+
+    // 3. UI CONTROLS WIRING
+    const btnRain = document.getElementById('btn-rain');
+    const btnSnow = document.getElementById('btn-snow');
+
+    btnRain.onclick = () => {
+        weather.setMode('rain');
+        btnRain.classList.add('active');
+        btnSnow.classList.remove('active');
+    };
+    btnSnow.onclick = () => {
+        weather.setMode('snow');
+        btnSnow.classList.add('active');
+        btnRain.classList.remove('active');
+    };
+
+    document.getElementById('btn-wind-l').onclick = () => weather.setWind(-400);
+    document.getElementById('btn-wind-0').onclick = () => weather.setWind(0);
+    document.getElementById('btn-wind-r').onclick = () => weather.setWind(400);
+
+    // 4. HEARTBEAT LOOP
+    let lt = performance.now();
+
+    function loop(now) {
+        const dt = Math.min((now - lt) / 1000, 0.1);
+        lt = now;
+
+        // Clear screen with a dark, stormy background
+        ctx.fillStyle = '#080818';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Update the weather physics and draw
+        weather.update(dt, canvas.width, canvas.height);
+
+        requestAnimationFrame(loop);
+    }
+
+    requestAnimationFrame(loop);
+</script>
+</body>
+</html>

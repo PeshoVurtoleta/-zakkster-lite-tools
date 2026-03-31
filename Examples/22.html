@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Recipe 22 — Timeline Showcase</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #050508;
+            color: #c8c8e0;
+            font-family: 'Fira Code', monospace;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* The Canvas for the confetti overlay */
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* The DOM Elements being animated */
+        .card-container {
+            display: flex;
+            gap: 30px;
+            position: relative;
+            z-index: 5;
+        }
+
+        .feature-card {
+            background: #0c0c14;
+            border: 1px solid #1a1a2e;
+            padding: 40px 30px;
+            border-radius: 12px;
+            width: 220px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            /* Note: We do NOT set transition or opacity here. The recipe handles it! */
+        }
+
+        .feature-card h3 {
+            margin: 0 0 10px 0;
+            color: #8b5cf6;
+        }
+
+        .feature-card p {
+            margin: 0;
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        #replay-btn {
+            position: absolute;
+            top: 30px;
+            padding: 10px 20px;
+            background: #1a1a2e;
+            color: white;
+            border: 1px solid #8b5cf6;
+            border-radius: 6px;
+            cursor: pointer;
+            z-index: 20;
+        }
+    </style>
+</head>
+<body>
+
+<button id="replay-btn">Replay Sequence</button>
+<canvas id="overlay"></canvas>
+
+<div class="card-container">
+    <div class="feature-card">
+        <h3>Zero-GC</h3>
+        <p>No garbage collection pauses.</p>
+    </div>
+    <div class="feature-card">
+        <h3>Typed Arrays</h3>
+        <p>Structure of Arrays architecture.</p>
+    </div>
+    <div class="feature-card">
+        <h3>Modular</h3>
+        <p>Import only what you need.</p>
+    </div>
+</div>
+
+<script type="module">
+    // 1. IMPORT EXACTLY AS DOCUMENTED
+    import {Recipes} from 'https://cdn.jsdelivr.net/npm/@zakkster/lite-tools@2.0.19/+esm';
+
+    const overlayCanvas = document.getElementById('overlay');
+
+    // Size the canvas so the confetti knows where the bounds are
+    const dpr = window.devicePixelRatio || 1;
+    overlayCanvas.width = window.innerWidth * dpr;
+    overlayCanvas.height = window.innerHeight * dpr;
+
+    let showcase = null;
+
+    function runAnimation() {
+        // Cleanup previous instance if replaying
+        if (showcase && showcase.destroy) showcase.destroy();
+
+        // 2. MOUNT THE RECIPE
+        // It immediately finds '.feature-card' and sets them to opacity: 0
+        showcase = Recipes.timelineShowcase('.feature-card', overlayCanvas, {
+            brandColor: {l: 0.7, c: 0.3, h: 280}
+        });
+
+        // 3. EXECUTE
+        showcase.play();
+    }
+
+    // Run immediately on load
+    runAnimation();
+
+    // Replay logic
+    document.getElementById('replay-btn').addEventListener('click', runAnimation);
+</script>
+</body>
+</html>

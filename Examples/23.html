@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Recipe 23 — Spark Impact (Library Standard)</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #050508;
+            overflow: hidden;
+            font-family: 'Fira Code', monospace;
+        }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(12, 12, 20, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #1a1a2e;
+            color: #8b5cf6;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="ui">
+    <div style="font-weight: bold; margin-bottom: 5px;">RECIPE 23</div>
+    <div style="font-size: 12px; opacity: 0.7;">Click anywhere to trigger impact!</div>
+</div>
+
+<div id="container">
+    <canvas id="stage"></canvas>
+</div>
+
+<script type="module">
+    // 1. IMPORT EXACTLY AS DOCUMENTED
+    import {Recipes} from 'https://cdn.jsdelivr.net/npm/@zakkster/lite-tools@2.0.19/+esm';
+
+    const canvas = document.getElementById('stage');
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+
+    // 2. CRITICAL PRE-MOUNT SIZING
+    // The recipe captures `canvas.width` on mount for the CinematicCamera.
+    // We MUST set the physical size before calling the recipe, or it will capture 0x0.
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+
+    // 3. MOUNT THE RECIPE (Following the README)
+    const impact = Recipes.sparkImpact(canvas, {
+        maxSparks: 5000,
+        maxFireworks: 3000,
+        shakeIntensity: 10
+    });
+
+    // 4. INTERACTION
+    // Note: We multiply by `dpr` because offsetX is in CSS pixels,
+    // but the engine operates in high-res canvas coordinates.
+    // 4. INTERACTION
+    canvas.addEventListener('click', (e) => {
+        // This is the bulletproof way to map a mouse click on a CSS-scaled canvas
+        // directly to the internal high-res pixel buffer.
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+        const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+        impact.explodeAt(x, y);
+    });
+
+    // 5. THE HEARTBEAT RENDER LOOP
+    let lt = performance.now();
+
+    function loop(now) {
+        const dt = Math.min((now - lt) / 1000, 0.1);
+        lt = now;
+
+        // In render loop (Exactly as README states)
+        ctx.fillStyle = 'rgba(10,10,10,0.3)';
+        // We clear the full physical width now
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        impact.update(dt);
+
+        requestAnimationFrame(loop);
+    }
+
+    // Start the loop and fire a test explosion
+    requestAnimationFrame(loop);
+    setTimeout(() => impact.explodeAt((canvas.width / 2), (canvas.height / 2)), 300);
+
+</script>
+</body>
+</html>

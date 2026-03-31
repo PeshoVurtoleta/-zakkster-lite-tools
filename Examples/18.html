@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Recipe 18 — Campfire Scene</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0a14;
+            color: #c8c8e0;
+            font-family: 'Fira Code', monospace;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(12, 12, 20, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #1a1a2e;
+            pointer-events: none;
+        }
+
+        .title {
+            color: #e25822;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .hint {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+
+<div id="ui">
+    <div class="title">Recipe 18: Campfire Scene</div>
+    <div class="hint">EmberEngine + SmokeEngine Composition</div>
+</div>
+
+<canvas id="stage"></canvas>
+
+<script type="module">
+    import {Recipes} from 'https://cdn.jsdelivr.net/npm/@zakkster/lite-tools@2.0.19/+esm';
+
+    const canvas = document.getElementById('stage');
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+
+    // 1. PHYSICAL SIZING
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+
+    // 2. MOUNT THE RECIPE
+    // We scale the fire width/height and position by the DPR to keep it crisp and centered
+    const fireW = 80 * dpr;
+    const fireH = 25 * dpr;
+    const fireX = (canvas.width / 2) - (fireW / 2);
+    const fireY = canvas.height - (100 * dpr);
+
+    const fire = Recipes.campfireScene(canvas, {
+        fireX, fireY, fireW, fireH,
+        maxEmbers: 3000,
+        maxSmoke: 1000,
+        dpr: dpr // Passed directly to the smoke engine as documented!
+    });
+
+    // 3. HEARTBEAT LOOP
+    let lt = performance.now();
+
+    function loop(now) {
+        const dt = Math.min((now - lt) / 1000, 0.1);
+        lt = now;
+
+        // Clear the night sky background
+        ctx.fillStyle = '#0a0a14';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Update the composed engines
+        fire.update(dt, canvas.width, canvas.height);
+
+        requestAnimationFrame(loop);
+    }
+
+    requestAnimationFrame(loop);
+</script>
+</body>
+</html>

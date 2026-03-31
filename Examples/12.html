@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Recipe 12 — Replay System</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #050508;
+            overflow: hidden;
+            font-family: 'Fira Code', monospace;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            cursor: crosshair;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(12, 12, 20, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #1a1a2e;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        button {
+            padding: 8px 16px;
+            background: #1a1a2e;
+            color: white;
+            border: 1px solid #8b5cf6;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        button:hover:not(:disabled) {
+            background: #8b5cf6;
+        }
+
+        button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            border-color: #333;
+        }
+
+        #status {
+            color: #4facfe;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .red-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: red;
+            border-radius: 50%;
+            margin-right: 5px;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.3;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div id="ui">
+    <div id="status">Status: Idle</div>
+    <div style="font-size: 12px; opacity: 0.7;">Click canvas to spawn explosions</div>
+
+    <div class="controls">
+        <button id="btn-rec">Start Recording</button>
+        <button id="btn-stop" disabled>Stop</button>
+        <button id="btn-play" disabled>Replay Tape</button>
+    </div>
+</div>
+
+<canvas id="stage"></canvas>
+
+<script type="module">
+    // We need both Recipes and Presets for this one
+    import {Recipes, Presets} from 'https://cdn.jsdelivr.net/npm/@zakkster/lite-tools@2.0.19/+esm';
+
+    const canvas = document.getElementById('stage');
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+    // We do NOT use ctx.scale here because we need raw pixel coordinates for the tape
+
+    const uiStatus = document.getElementById('status');
+    const btnRec = document.getElementById('btn-rec');
+    const btnStop = document.getElementById('btn-stop');
+    const btnPlay = document.getElementById('btn-play');
+
+    // 1. MOUNT THE RECIPE
+    // We pass a hardcoded seed so the math is 100% deterministic during replay
+    const replay = Recipes.replaySystem(ctx, {seed: 999});
+
+    // 2. REGISTER A VFX PRESET
+    // We use your built-in 'explosion' preset and register it to the tape dictionary
+    replay.registerRecipe('explosion', Presets.explosion);
+
+    // 3. INTERACTION & RECORDING
+    canvas.addEventListener('mousedown', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) * dpr;
+        const y = (e.clientY - rect.top) * dpr;
+
+        // If we are recording, it writes to the tape.
+        // If we are idle, it just ignores the click.
+        replay.recordEvent(x, y, 'explosion');
+    });
+
+    // 4. UI WIRING
+    btnRec.onclick = () => {
+        replay.startRecording();
+        uiStatus.innerHTML = '<span class="red-dot"></span>Recording... (Click the screen)';
+        btnRec.disabled = true;
+        btnStop.disabled = false;
+        btnPlay.disabled = true;
+    };
+
+    btnStop.onclick = () => {
+        const tapeLen = replay.stopRecording();
+        uiStatus.innerHTML = `Status: Tape Stopped (${tapeLen} events)`;
+        btnRec.disabled = false;
+        btnStop.disabled = true;
+        btnPlay.disabled = tapeLen === 0; // Only allow replay if we clicked something
+    };
+
+    btnPlay.onclick = () => {
+        // Stops any current action and plays back the VHS tape frame-perfectly
+        replay.replay();
+        uiStatus.innerHTML = 'Status: ⏪ Replaying Tape...';
+        btnRec.disabled = true;
+        btnStop.disabled = true;
+        btnPlay.disabled = true;
+
+        // Listen for the FSM to go back to idle when the tape finishes
+        const checkDone = setInterval(() => {
+            if (replay.fsm.current === 'idle') {
+                clearInterval(checkDone);
+                uiStatus.innerHTML = 'Status: Replay Finished';
+                btnRec.disabled = false;
+                btnPlay.disabled = false;
+            }
+        }, 100);
+    };
+
+    // 5. HEARTBEAT LOOP
+    // Note: The replay recipe manages the FX engine, but WE still have to clear the screen!
+    function loop() {
+        // Subtle trail effect
+        ctx.fillStyle = 'rgba(5, 5, 8, 0.3)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // The FX engine ticks itself internally inside the ReplaySystem via its own loop
+        // We just handle the background here.
+        requestAnimationFrame(loop);
+    }
+
+    requestAnimationFrame(loop);
+
+</script>
+</body>
+</html>

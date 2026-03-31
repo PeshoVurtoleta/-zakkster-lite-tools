@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Recipe 20 — Boids Simulation</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #050508;
+            color: #c8c8e0;
+            font-family: 'Fira Code', monospace;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(12, 12, 20, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #1a1a2e;
+            pointer-events: none;
+        }
+
+        .title {
+            color: #8b5cf6;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .hint {
+            font-size: 12px;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+
+<div id="ui">
+    <div class="title">Recipe 20: Boids Simulation</div>
+    <div class="hint">Move your mouse to scatter the flock!</div>
+</div>
+
+<canvas id="stage"></canvas>
+
+<script type="module">
+    // 1. IMPORT EXACTLY AS DOCUMENTED
+    import {Recipes} from 'https://cdn.jsdelivr.net/npm/@zakkster/lite-tools@2.0.19/+esm';
+
+    const canvas = document.getElementById('stage');
+    const dpr = window.devicePixelRatio || 1;
+
+    // 2. CRITICAL PRE-MOUNT SIZING
+    // The recipe captures w & h on mount for the SpatialGrid and wrapping logic.
+    // We do NOT use ctx.scale() to prevent double-scaling the math.
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+
+    // 3. MOUNT THE RECIPE
+    const boids = Recipes.boidsSimulation(canvas, {
+        count: 400, // Bumped up to 400 to show off your SpatialGrid performance!
+        seed: 42
+    });
+
+    // 4. CUSTOM BEHAVIOR (Mouse Repulsor)
+    // We map the mouse to the high-DPI canvas coordinates
+    let mouseX = -1000, mouseY = -1000;
+    window.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX * dpr;
+        mouseY = e.clientY * dpr;
+    });
+    // Move mouse out of the way when it leaves the window
+    window.addEventListener('mouseout', () => {
+        mouseX = -1000;
+        mouseY = -1000;
+    });
+
+    // 5. THE HEARTBEAT RENDER LOOP
+    let lt = performance.now();
+
+    function loop(now) {
+        // Safe delta-time cap
+        const dt = Math.min((now - lt) / 1000, 0.1);
+        lt = now;
+
+        // A. Custom developer logic (Manipulating the exposed agents)
+        const repelRadius = 150 * dpr;
+
+        boids.agents.forEach(a => {
+            const dx = a.x - mouseX;
+            const dy = a.y - mouseY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            // If a boid gets too close to the mouse, apply a massive repelling force
+            if (dist < repelRadius && dist > 0) {
+                const force = (repelRadius - dist) / repelRadius;
+                a.vx += (dx / dist) * force * 1500 * dt;
+                a.vy += (dy / dist) * force * 1500 * dt;
+            }
+        });
+
+        // B. Run the internal library physics and rendering
+        // (This applies spatial hashing, flocking math, wrapping, and draws them)
+        boids.update(dt);
+
+        requestAnimationFrame(loop);
+    }
+
+    // Start the flock
+    requestAnimationFrame(loop);
+
+</script>
+</body>
+</html>

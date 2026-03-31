@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Recipe 04 — Scroll Story</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            background: #050508;
+            color: #c8c8e0;
+            font-family: 'Outfit', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* The dynamic progress bar */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            z-index: 1000;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #4facfe;
+            width: 0%;
+            transform-origin: left;
+        }
+
+        /* Hero Parallax Area */
+        .hero {
+            position: relative;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .hero-bg {
+            position: absolute;
+            top: -10%;
+            left: 0;
+            width: 100%;
+            height: 120%;
+            background: linear-gradient(to bottom, transparent, #050508), url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2000&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            z-index: -1;
+        }
+
+        .section-title {
+            font-size: 3rem;
+            color: white;
+            text-align: center;
+            margin: 100px 0 40px;
+        }
+
+        /* Cards for fadeUp stagger */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 50px 20px 200px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-bottom: 100px;
+        }
+
+        .card {
+            background: #0c0c14;
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid #1a1a2e;
+            text-align: center;
+        }
+
+        /* Image for fadeInLeft */
+        .feature-img {
+            width: 100%;
+            border-radius: 16px;
+            border: 1px solid #1a1a2e;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="progress-bar">
+    <div class="progress-fill"></div>
+</div>
+
+<section class="hero">
+    <div class="hero-bg"></div>
+    <h1 class="section-title">The Cosmos Awaits</h1>
+</section>
+
+<div class="container">
+    <h2 class="section-title">Engine Features</h2>
+
+    <div class="grid">
+        <div class="card"><h3>Zero-GC</h3>
+            <p>No garbage collection.</p></div>
+        <div class="card"><h3>Typed Arrays</h3>
+            <p>Float32Array math.</p></div>
+        <div class="card"><h3>Modular</h3>
+            <p>Tree-shakeable design.</p></div>
+    </div>
+
+    <h2 class="section-title">Visual Excellence</h2>
+    <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop"
+         class="feature-img" alt="Abstract">
+</div>
+
+<script type="module">
+    import {Recipes} from 'https://cdn.jsdelivr.net/npm/@zakkster/lite-tools@2.0.19/+esm';
+
+    // 1. MOUNT THE RECIPE
+    // It finds all the selectors and maps them to their respective UI classes
+    const story = Recipes.scrollStory({
+        heroSelector: '.hero-bg',
+        heroSpeed: 0.4, // Parallax intensity
+        cardSelector: '.card', // Triggers fadeUp stagger
+        imageSelector: '.feature-img', // Triggers fadeInLeft
+        titleSelector: '.section-title', // Triggers cascade down
+        progressBar: document.querySelector('.progress-fill'),
+    });
+</script>
+</body>
+</html>

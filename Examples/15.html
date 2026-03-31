@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Recipe 15 — Retro Arcade Text</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #050508;
+            overflow: hidden;
+            font-family: 'Fira Code', monospace;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            cursor: crosshair;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(12, 12, 20, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #1a1a2e;
+            color: #8b5cf6;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="ui">
+    <div style="font-weight: bold;">Recipe 15: Arcade Text</div>
+    <div style="font-size: 12px; opacity: 0.7;">Click the target to deal damage!</div>
+    <div style="font-size: 11px; color: #4facfe; margin-top: 5px;">Dynamic BMFont injected successfully.</div>
+</div>
+
+<canvas id="stage"></canvas>
+
+<script type="module">
+    import {Recipes} from 'https://cdn.jsdelivr.net/npm/@zakkster/lite-tools@2.0.19/+esm';
+
+    const canvas = document.getElementById('stage');
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+
+    // ---------------------------------------------------------
+    // 1. DYNAMIC BMFONT GENERATOR (The Magic Trick)
+    // ---------------------------------------------------------
+    function generateMockBMFont() {
+        const c = document.createElement('canvas');
+        const cx = c.getContext('2d');
+        c.width = 512;
+        c.height = 64;
+
+        // Setup font style
+        cx.fillStyle = '#e25822'; // Orange/Red Arcade color
+        cx.font = 'bold 32px monospace';
+        cx.textBaseline = 'top';
+
+        // The characters we need for the damage numbers and "SCORE: " text
+        const charsToDraw = Array.from(new Set("0123456789SCORE: ".split('')));
+        const fontData = {common: {lineHeight: 36, base: 32}, chars: []};
+
+        let currentX = 0;
+
+        charsToDraw.forEach(ch => {
+            const metrics = cx.measureText(ch);
+            const w = Math.max(Math.ceil(metrics.width), 15); // ensure space gets a width
+
+            // Draw it to our hidden sprite sheet
+            cx.fillText(ch, currentX, 0);
+
+            // Record its location for your LiteEngine to read
+            fontData.chars.push({
+                id: ch.charCodeAt(0),
+                x: currentX, y: 0, width: w, height: 40,
+                xoffset: 0, yoffset: 0, xadvance: w + 2
+            });
+
+            currentX += w + 4;
+        });
+
+        const img = new Image();
+        img.src = c.toDataURL(); // Convert canvas to a Base64 image
+        return {img, data: fontData};
+    }
+
+    const generatedFont = generateMockBMFont();
+
+    // ---------------------------------------------------------
+
+    // Wait for our Base64 image to "load" (it's instant) before starting
+    generatedFont.img.onload = () => {
+
+        // 2. MOUNT THE RECIPE (Now with real image pixels and real map data)
+        const hud = Recipes.retroArcadeText(ctx, generatedFont.img, generatedFont.data, {seed: 42});
+
+        const enemy = {x: canvas.width / 2, y: canvas.height / 2, radius: 40 * dpr};
+
+        // 3. PERFECT HIT DETECTION
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+            const dx = mouseX - enemy.x;
+            const dy = mouseY - enemy.y;
+
+            if (Math.sqrt(dx * dx + dy * dy) < enemy.radius) {
+                const dmg = Math.floor(50 + Math.random() * 150);
+                hud.addDamage(enemy.x + (Math.random() * 60 - 30), enemy.y - 40, dmg);
+            }
+        });
+
+        // 4. HEARTBEAT LOOP
+        let lt = performance.now();
+
+        function loop(now) {
+            const dt = Math.min((now - lt) / 1000, 0.1);
+            lt = now;
+
+            ctx.fillStyle = '#050508';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Enemy Target
+            ctx.fillStyle = '#1a1a2e';
+            ctx.strokeStyle = '#4facfe';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(enemy.x, enemy.y, enemy.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // The HUD will now slice up our Base64 canvas and draw the numbers!
+            hud.update(dt);
+
+            requestAnimationFrame(loop);
+        }
+
+        requestAnimationFrame(loop);
+    };
+</script>
+</body>
+</html>

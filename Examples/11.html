@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Recipe 11 — Interactive Tilt Gallery</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #050508;
+            font-family: 'Fira Code', monospace;
+            overflow-x: hidden;
+        }
+
+        /* The Canvas MUST be fixed and cover the whole screen, passing pointer events through */
+        #sparkle-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        .header {
+            text-align: center;
+            padding: 60px 20px;
+            color: #8b5cf6;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 40px;
+            padding: 40px;
+            max-width: 1200px;
+            margin: 0 auto 100px auto;
+        }
+
+        .gallery-card {
+            background: #0c0c14;
+            border: 1px solid #1a1a2e;
+            border-radius: 16px;
+            height: 350px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            color: white;
+            /* CRITICAL: We need transform-style preserve-3d for the Tilt effect to look good */
+            transform-style: preserve-3d;
+            perspective: 1000px;
+        }
+
+        .gallery-card h3 {
+            transform: translateZ(50px);
+            margin: 0;
+        }
+
+        .gallery-card p {
+            transform: translateZ(30px);
+            font-size: 14px;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="sparkle-overlay"></canvas>
+
+<div class="header">
+    <h2>Recipe 11: Tilt Gallery</h2>
+    <p style="opacity: 0.7; font-size: 14px;">Scroll down. Hover over cards.</p>
+</div>
+
+<div class="grid">
+    <div class="gallery-card"><h3>Card 1</h3>
+        <p>Hover me</p></div>
+    <div class="gallery-card"><h3>Card 2</h3>
+        <p>Hover me</p></div>
+    <div class="gallery-card"><h3>Card 3</h3>
+        <p>Hover me</p></div>
+    <div class="gallery-card"><h3>Card 4</h3>
+        <p>Hover me</p></div>
+    <div class="gallery-card"><h3>Card 5</h3>
+        <p>Hover me</p></div>
+    <div class="gallery-card"><h3>Card 6</h3>
+        <p>Hover me</p></div>
+</div>
+
+<script type="module">
+    import {Recipes} from 'https://cdn.jsdelivr.net/npm/@zakkster/lite-tools@2.0.19/+esm';
+
+    const canvas = document.getElementById('sparkle-overlay');
+    const dpr = window.devicePixelRatio || 1;
+
+    // 1. SIZING THE OVERLAY
+    // 1. SIZING THE OVERLAY (1:1 with CSS pixels)
+    function resize() {
+        // By setting the internal resolution to match the CSS exactly,
+        // the SparkleHover engine's internal e.clientX math works perfectly.
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+
+    // 2. MOUNT THE RECIPE
+    // It automatically grabs all '.gallery-card' elements, applies ScrollReveal,
+    // adds 3D Tilt, and wires up the SparkleHover to the canvas.
+    const gallery = Recipes.tiltGallery('.gallery-card', canvas, {
+        maxAngle: 15,
+        sparkleColor: {l: 0.8, c: 0.2, h: 280}, // Purple sparkles
+        sparkleRate: 4
+    });
+
+</script>
+</body>
+</html>

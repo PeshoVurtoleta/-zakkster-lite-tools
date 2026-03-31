@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Recipe 16 — Procedural World</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            color: #4facfe;
+            font-family: 'Fira Code', monospace;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="ui">
+    <div style="font-weight: bold; margin-bottom: 10px;">Recipe 16: Procedural World</div>
+    <div style="font-size: 12px; opacity: 0.8;">Move mouse to pan camera over infinite terrain.</div>
+</div>
+
+<canvas id="stage"></canvas>
+
+<script type="module">
+    import {Recipes} from 'https://cdn.jsdelivr.net/npm/@zakkster/lite-tools@2.0.19/+esm';
+
+    const canvas = document.getElementById('stage');
+
+    // 1. SIZING (We let the recipe use actual pixel bounds for drawing grid cells)
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // 2. MOUNT THE RECIPE
+    const world = Recipes.proceduralWorld(canvas, {
+        seed: 9999,
+        cellSize: 12, // Increased slightly for a cooler pixel-art look
+        scale: 0.015
+    });
+
+    // 3. INTERACTIVE CAMERA TARGETING
+    // Maps the mouse position to a massive world-space coordinate
+    window.addEventListener('mousemove', (e) => {
+        const targetWorldX = e.clientX * 4;
+        const targetWorldY = e.clientY * 4;
+        world.moveTo(targetWorldX, targetWorldY);
+    });
+
+    // 4. HEARTBEAT LOOP
+    // Note: The world recipe has an internal `render(dt)` that acts as our `update(dt)`
+    let lt = performance.now();
+
+    function loop(now) {
+        const dt = Math.min((now - lt) / 1000, 0.1);
+        lt = now;
+
+        world.render(dt);
+
+        requestAnimationFrame(loop);
+    }
+
+    requestAnimationFrame(loop);
+</script>
+</body>
+</html>

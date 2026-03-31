@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Recipe 09 — Professional Firework Show</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #050508;
+            overflow: hidden;
+            font-family: 'Fira Code', monospace;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            cursor: crosshair;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(12, 12, 20, 0.9);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #1a1a2e;
+            color: white;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .title {
+            color: #f6ca5c;
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-bottom: 5px;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .row {
+            display: flex;
+            gap: 8px;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px;
+            background: #1a1a2e;
+            color: white;
+            border: 1px solid #333;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            border-color: #f6ca5c;
+            background: #252540;
+        }
+
+        button.active {
+            background: #f6ca5c;
+            color: #000;
+            border-color: #f6ca5c;
+            font-weight: bold;
+        }
+
+        .hint {
+            font-size: 11px;
+            opacity: 0.6;
+            margin-top: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div id="ui">
+    <div class="title">Recipe 09: Firework Show</div>
+    <div style="font-size: 12px; opacity: 0.8;">Automated Choreography + Manual Input</div>
+
+    <div class="controls">
+        <div class="row">
+            <button id="btn-resume" class="active">Auto Show: ON</button>
+            <button id="btn-stop">Auto Show: OFF</button>
+        </div>
+        <button id="btn-burst">Launch Supernova Burst</button>
+    </div>
+    <div class="hint">Click anywhere on the sky to launch!</div>
+</div>
+
+<canvas id="stage"></canvas>
+
+<script type="module">
+    import {Recipes} from 'https://cdn.jsdelivr.net/npm/@zakkster/lite-tools@2.0.20/+esm';
+
+    const canvas = document.getElementById('stage');
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+
+    // 1. SETUP HIGH-DPI CANVAS
+    // We pass these exact values into the recipe so the fillRect covers the whole area
+    canvas.width = window.innerWidth * dpr;
+    canvas.height = window.innerHeight * dpr;
+
+    // 2. MOUNT THE RECIPE
+    // This starts the internal Ticker and the auto-launch logic immediately
+    const show = Recipes.fireworkShow(ctx, canvas.width, canvas.height, {
+        burstInterval: 1000, // One launch per second
+        maxParticles: 8000,
+        seed: 777
+    });
+
+    // 3. INTERACTIVE CONTROLS
+    const btnResume = document.getElementById('btn-resume');
+    const btnStop = document.getElementById('btn-stop');
+    const btnBurst = document.getElementById('btn-burst');
+
+    btnResume.onclick = () => {
+        show.resume();
+        btnResume.classList.add('active');
+        btnStop.classList.remove('active');
+    };
+
+    btnStop.onclick = () => {
+        show.stop();
+        btnStop.classList.add('active');
+        btnResume.classList.remove('active');
+    };
+
+    // Manual burst at a random location
+    btnBurst.onclick = () => {
+        const x = Math.random() * canvas.width;
+        const y = canvas.height * 0.2 + Math.random() * canvas.height * 0.3;
+        show.manualBurst(x, y);
+    };
+
+    // 4. MOUSE INTERACTION
+    canvas.addEventListener('mousedown', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) * dpr;
+        const y = (e.clientY - rect.top) * dpr;
+
+        // Launch a manual firework that explodes at mouse height
+        show.manualBurst(x, y);
+    });
+
+    // 5. RESIZE HANDLER
+    window.addEventListener('resize', () => {
+        // Note: For a production app, you'd want to re-mount the recipe
+        // if the width/height change significantly, as the internal
+        // ticker uses the initial width/height for clearRect.
+        canvas.width = window.innerWidth * dpr;
+        canvas.height = window.innerHeight * dpr;
+    });
+
+</script>
+</body>
+</html>

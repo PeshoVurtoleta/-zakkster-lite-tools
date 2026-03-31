@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Recipe 14 — Game Canvas Setup</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #050508;
+            overflow: hidden;
+            font-family: 'Fira Code', monospace;
+        }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(12, 12, 20, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #1a1a2e;
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 8px 16px;
+            background: #8b5cf6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+        }
+
+        .status {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #4facfe;
+        }
+    </style>
+</head>
+<body>
+
+<div id="container">
+    <canvas id="stage"></canvas>
+</div>
+
+<div id="ui">
+    <div style="font-weight: bold; color: #8b5cf6;">Recipe 14: Game Canvas</div>
+    <div style="font-size: 12px; opacity: 0.7;">FSM State + Ticker Demo</div>
+    <div class="status" id="state-text">State: Loading...</div>
+    <button id="btn-toggle">Pause Game</button>
+</div>
+
+<script type="module">
+    import {Recipes} from 'https://cdn.jsdelivr.net/npm/@zakkster/lite-tools@2.0.19/+esm';
+
+    const canvas = document.getElementById('stage');
+    const stateText = document.getElementById('state-text');
+    const toggleBtn = document.getElementById('btn-toggle');
+
+    // 1. MOUNT THE RECIPE
+    // (This creates the Viewport, Ticker, Random, FSM, and FPSMeter all at once)
+    const game = Recipes.gameCanvas(canvas, {
+        fps: true,
+        fpsPosition: 'bottom-right',
+        seed: 42,
+        maxParticles: 5000,
+    });
+
+    // 2. GAME LOGIC VARIABLES
+    let ballX = 100;
+    let ballY = 200;
+    let velocityX = 400; // pixels per second
+    let velocityY = 300;
+
+    // 3. THE UPDATE LOOP
+    // Note: 'game.onUpdate' is brilliant. It ONLY fires if the FSM state === 'playing'.
+    game.onUpdate((dt) => {
+        // dt comes from the Ticker (usually in milliseconds, e.g., 16.66)
+        // We divide by 1000 to get smooth per-second movement math
+        const deltaSec = dt / 1000;
+
+        // Clear Screen
+        game.ctx.fillStyle = '#050508';
+        game.ctx.fillRect(0, 0, game.width, game.height);
+
+        // Physics
+        ballX += velocityX * deltaSec;
+        ballY += velocityY * deltaSec;
+
+        // Bounce off walls
+        if (ballX > game.width - 30 || ballX < 30) velocityX *= -1;
+        if (ballY > game.height - 30 || ballY < 30) velocityY *= -1;
+
+        // Draw Ball
+        game.ctx.fillStyle = '#e25822';
+        game.ctx.beginPath();
+        game.ctx.arc(ballX, ballY, 30, 0, Math.PI * 2);
+        game.ctx.fill();
+    });
+
+    // 4. START THE ENGINE
+    game.start();
+    stateText.textContent = `State: ${game.state}`;
+
+    // 5. INTERACTIVE FSM (Finite State Machine)
+    toggleBtn.addEventListener('click', () => {
+        if (game.state === 'playing') {
+            game.setState('paused');
+            toggleBtn.textContent = 'Resume Game';
+            stateText.textContent = `State: ${game.state}`;
+
+            // Draw a PAUSED overlay
+            game.ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            game.ctx.fillRect(0, 0, game.width, game.height);
+            game.ctx.fillStyle = 'white';
+            game.ctx.font = 'bold 48px sans-serif';
+            game.ctx.textAlign = 'center';
+            game.ctx.fillText("PAUSED", game.width / 2, game.height / 2);
+
+        } else if (game.state === 'paused') {
+            game.setState('playing');
+            toggleBtn.textContent = 'Pause Game';
+            stateText.textContent = `State: ${game.state}`;
+        }
+    });
+
+</script>
+</body>
+</html>

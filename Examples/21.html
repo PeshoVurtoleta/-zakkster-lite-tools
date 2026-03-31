@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Recipe 21 — Gesture Carousel</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #050508;
+            color: #c8c8e0;
+            font-family: 'Fira Code', monospace;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .ui-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .ui-header h2 {
+            color: #8b5cf6;
+            margin: 0 0 5px 0;
+        }
+
+        /* --- THE CAROUSEL CONTAINER --- */
+        #slider {
+            width: 90vw;
+            max-width: 600px;
+            height: 400px;
+            position: relative;
+            background: #0c0c14;
+            border-radius: 16px;
+            border: 1px solid #1a1a2e;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            /* CRITICAL: Hide the off-screen slides */
+            overflow: hidden;
+            /* CRITICAL: Allow native vertical scrolling, but trap horizontal gestures */
+            touch-action: pan-y;
+            /* CRITICAL: Prevent text highlighting while dragging */
+            user-select: none;
+        }
+
+        /* --- THE SLIDES --- */
+        .slide {
+            /* CRITICAL: All slides must be absolute so the recipe's translateX math works */
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 16px;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            /* DO NOT add 'transition: transform' here! The lite-timeline handles it. */
+        }
+
+        /* Styling for visual distinction */
+        .slide-1 {
+            background: linear-gradient(135deg, #1e1e38, #0c0c14);
+        }
+
+        .slide-2 {
+            background: linear-gradient(135deg, #2a1a3a, #0c0c14);
+        }
+
+        .slide-3 {
+            background: linear-gradient(135deg, #1a2a3a, #0c0c14);
+        }
+
+        .badge {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            margin-top: 15px;
+        }
+
+        /* --- CONTROLS --- */
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        button {
+            padding: 12px 24px;
+            background: #1a1a2e;
+            color: white;
+            border: 1px solid #8b5cf6;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #8b5cf6;
+            color: #fff;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+
+<div class="ui-header">
+    <h2>Recipe 21: Gesture Carousel</h2>
+    <div style="font-size: 12px; opacity: 0.6;">Drag horizontally or use buttons</div>
+</div>
+
+<div id="slider">
+    <div class="slide slide-1">Slide 1
+        <div class="badge">GestureTracker + Timeline</div>
+    </div>
+    <div class="slide slide-2">Slide 2
+        <div class="badge">easeOutCubic Snap</div>
+    </div>
+    <div class="slide slide-3">Slide 3
+        <div class="badge">Zero CSS Transitions</div>
+    </div>
+</div>
+
+<div class="controls">
+    <button id="btn-prev">← Prev</button>
+    <button id="btn-next">Next →</button>
+</div>
+
+<script type="module">
+    // 1. IMPORT EXACTLY AS DOCUMENTED
+    import {Recipes} from 'https://cdn.jsdelivr.net/npm/@zakkster/lite-tools@2.0.19/+esm';
+
+    // 2. MOUNT THE RECIPE
+    // Signature: (containerSelector, [slideSelectors])
+    const carousel = Recipes.gestureCarousel('#slider', ['.slide-1', '.slide-2', '.slide-3']);
+
+    // 3. PROGRAMMATIC NAVIGATION (Testing the instance methods)
+    document.getElementById('btn-prev').addEventListener('click', () => {
+        const current = carousel.getCurrentIndex();
+        carousel.goTo(current - 1);
+    });
+
+    document.getElementById('btn-next').addEventListener('click', () => {
+        const current = carousel.getCurrentIndex();
+        carousel.goTo(current + 1);
+    });
+</script>
+</body>
+</html>

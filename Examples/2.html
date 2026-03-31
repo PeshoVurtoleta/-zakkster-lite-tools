@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Recipe 02 — Premium Agency Button</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #050508;
+            font-family: 'Outfit', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* The Overlay Canvas for the Confetti */
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* The Button Styling */
+        #buy-now {
+            padding: 18px 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            font-family: inherit;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            /* The recipe handles the background color shifting! */
+            background-color: #7b42f6; /* Fallback starting color */
+
+            /* Magnetic bounds look better without default browser transitions fighting them */
+            transition: box-shadow 0.3s ease;
+        }
+
+        #buy-now:hover {
+            box-shadow: 0 25px 45px rgba(139, 92, 246, 0.4);
+        }
+
+        .helper {
+            position: absolute;
+            bottom: 40px;
+            color: #c8c8e0;
+            opacity: 0.5;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="overlay"></canvas>
+
+<button id="buy-now">Get Started</button>
+
+<div class="helper">Hover to attract. Click to celebrate.</div>
+
+<script type="module">
+    import {Recipes} from 'https://cdn.jsdelivr.net/npm/@zakkster/lite-tools@2.0.19/+esm';
+
+    const canvas = document.getElementById('overlay');
+    const button = document.getElementById('buy-now');
+
+    // 1. SIZING THE OVERLAY (Strictly 1:1 with CSS)
+    // We do NOT use devicePixelRatio here so DOM bounds match Canvas bounds!
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+
+    // 2. MOUNT THE RECIPE
+    // Applies Magnetic bounds, ColorShift on hover, and Confetti on click automatically
+    const btnLogic = Recipes.premiumButton(button, canvas, {
+        brandColor: {l: 0.6, c: 0.25, h: 280}, // Purple
+        hoverColor: {l: 0.7, c: 0.2, h: 320},  // Pinkish purple
+        magneticStrength: 0.5,
+    });
+
+</script>
+</body>
+</html>
