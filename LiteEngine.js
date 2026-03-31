@@ -733,7 +733,7 @@ export const Recipes = {
                     );
                 }
             }
-            engine.updateAndDraw(ctx, dt, width, height);
+            engine.updateAndDraw(ctx, dt / 1000, width, height);
         });
         ticker.start();
 
@@ -1109,10 +1109,6 @@ export const Recipes = {
         };
     },
 
-    /**
-     * 17. Dungeon Generator — WFC level generation with pathfinding overlay.
-     * Composes: lite-wfc + lite-spatial + lite-path
-     */
     /**
      * 17. Dungeon Generator — WFC level generation with pathfinding overlay.
      * Composes: lite-wfc + lite-spatial + lite-path

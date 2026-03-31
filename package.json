@@ -1,7 +1,7 @@
 {
   "name": "@zakkster/lite-tools",
   "author": "Zahary Shinikchiev <shinikchiev@yahoo.com>",
-  "version": "2.0.19",
+  "version": "2.0.20",
   "sideEffects": false,
   "description": "The standard library for high-performance web presentation — 45+ micro-libraries, 24 recipes, zero-GC, deterministic, tree-shakeable.",
   "type": "module",
@@ -73,6 +73,11 @@
   "devDependencies": {
     "jsdom": "^27.0.1",
     "vitest": "^4.0.18"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "bundle-check": "npx esbuild LiteEngine.js --bundle --format=esm --outfile=test-bundle.js",
+    "prepublishOnly": "npm run test && npm run bundle-check"
   },
   "keywords": [
     "toolkit",
