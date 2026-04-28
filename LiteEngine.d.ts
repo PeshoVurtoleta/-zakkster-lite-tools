@@ -178,6 +178,20 @@ export {EmberEngine} from '@zakkster/lite-embers';
 export {SmokeEngine} from '@zakkster/lite-smoke';
 
 
+export {
+    FastBit32,
+    BitMapper,
+    forEachArray,
+    forEachMapped,
+    forEachMappedObject,
+    forEachMaskDiff,
+    forEachMaskPair,
+    forEachMaskUnion,
+    forEachObject
+} from '@zakkster/lite-fastbit32';
+
+export {SpriteCache} from '@zakkster/lite-sprite-cache';
+
 // ═══════════════════════════════════════════════════════════
 //  RECIPE TYPES
 // ═══════════════════════════════════════════════════════════
@@ -205,6 +219,8 @@ import type {SparkEngine} from '@zakkster/lite-sparks';
 import type {FireworksEngine} from '@zakkster/lite-fireworks';
 import type {GestureTracker} from '@zakkster/lite-gesture';
 import type {createTimeline} from '@zakkster/lite-timeline';
+import type {SpriteCache} from '@zakkster/lite-sprite-cache';
+import type {FastBit32, BitMapper} from '@zakkster/lite-fastbit32';
 
 /** All recipes return at least a destroy() method. */
 interface Destroyable {
@@ -215,7 +231,8 @@ export interface BrandedBackgroundResult extends Destroyable {
     gen: GenEngine;
     field: FlowField;
     theme: ThemePalette;
-    gradient: (t: number) => OklchColor;
+    /** Gradient instance the recipe built. Sample with `gradient.at(t, out)`. */
+    gradient: Gradient;
 }
 
 export interface PremiumButtonResult extends Destroyable {
@@ -260,14 +277,13 @@ export interface SpringMenuResult extends Destroyable {
 }
 
 export interface NoiseHeatmapResult extends Destroyable {
-    gen: GenEngine;
-    gradient: (t: number) => OklchColor;
+    gradient: Gradient;
 
     reseed(seed?: number): void;
 }
 
 export interface FireworkShowResult extends Destroyable {
-    fx: FXSystem;
+    fx: FireworksEngine;
     ticker: Ticker;
 
     stop(): void;
@@ -278,7 +294,7 @@ export interface FireworkShowResult extends Destroyable {
 }
 
 export interface SnowfallResult extends Destroyable {
-    fx: FXSystem;
+    fx: SnowEngine;
     ticker: Ticker;
 
     setWind(strength: number): void;
@@ -298,7 +314,8 @@ export interface ReplaySystemResult extends Destroyable {
 
     recordEvent(x: number, y: number, recipeName: string): void;
 
-    stopRecording(): Array<{ time: number; x: number; y: number; recipeId: number }>;
+    /** Stops recording and returns the number of recorded events (tape length). */
+    stopRecording(): number;
 
     replay(): void;
 
@@ -363,6 +380,32 @@ export declare const Recipes: {
     timelineShowcase(elements: string | NodeListOf<Element>, overlayCanvas?: HTMLCanvasElement, options?: { brandColor?: OklchColor }): TimelineShowcaseResult;
     sparkImpact(canvas: HTMLCanvasElement, options?: { maxSparks?: number; maxFireworks?: number; shakeIntensity?: number }): SparkImpactResult;
     audioReactiveVFX(canvas: HTMLCanvasElement, options?: { maxEmbers?: number }): AudioReactiveVFXResult;
+
+    // v2.1 recipes — SpriteCache + FastBit32
+    tileMapStreamer(canvas: HTMLCanvasElement, options?: {
+        tileSize?: number;
+        gridCols?: number;
+        gridRows?: number;
+        tileUrl?: (bit: number) => string;
+        maxMemoryMB?: number;
+        fallbackColor?: OklchColor;
+        gridLineColor?: OklchColor;
+        showGrid?: boolean;
+    }): TileMapStreamerResult;
+    assetPreloader(canvas: HTMLCanvasElement, assets: Array<{ id: string; url: string }>, options?: {
+        brandColor?: OklchColor;
+        bgColor?: OklchColor;
+        onProgress?: (progress: number) => void;
+        onComplete?: () => void;
+    }): AssetPreloaderResult;
+    vramSpritePool(canvas: HTMLCanvasElement, textureUrl: string, options?: {
+        maxSprites?: number;
+        gravity?: number;
+        bounce?: number;
+        lifeMs?: number;
+        size?: number;
+        angularJitter?: number;
+    }): VramSpritePoolResult;
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -394,10 +437,16 @@ export interface DungeonGeneratorResult extends Destroyable {
     width: number;
     height: number;
     spatial: SpatialGrid;
+    /** Pre-allocated flat path buffer the engine writes into (x,y pairs). */
+    pathBuffer: Float32Array;
 
     isWalkable(x: number, y: number): boolean;
 
-    findPath(sx: number, sy: number, ex: number, ey: number): Array<{ x: number; y: number }> | null;
+    /**
+     * A* path lookup. Returns a reused [x, y] tuple array — DO NOT retain references
+     * across calls; copy if you need to keep results. Empty array on no-path.
+     */
+    findPath(sx: number, sy: number, ex: number, ey: number): Array<[number, number]>;
 
     renderToCanvas(ctx: CanvasRenderingContext2D, tileSize?: number): void;
 }
@@ -453,6 +502,55 @@ export interface AudioReactiveVFXResult extends Destroyable {
     connectAudio(sourceNode: AudioNode): void;
 
     update(dt: number, w: number, h: number): void;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  v2.1 RECIPE RESULT TYPES
+// ═══════════════════════════════════════════════════════════
+
+export interface TileMapStreamerResult extends Destroyable {
+    cache: SpriteCache;
+    readonly visibleCount: number;
+    readonly loadedCount: number;
+    readonly stats: { items: number; pending: number; memoryMB: string; maxMemoryMB: string };
+
+    panTo(x: number, y: number): void;
+
+    panBy(dx: number, dy: number): void;
+
+    setActiveMask(mask: number): void;
+
+    render(): void;
+}
+
+export interface AssetPreloaderResult extends Destroyable {
+    cache: SpriteCache;
+    mapper: BitMapper;
+    loadState: FastBit32;
+    readonly progress: number;
+    readonly isComplete: boolean;
+
+    render(): void;
+
+    getSprite(name: string): ImageBitmap | undefined;
+}
+
+export interface VramSpritePoolResult extends Destroyable {
+    cache: SpriteCache;
+    readonly count: number;
+    readonly capacity: number;
+    readonly isFull: boolean;
+    readonly textureLoaded: boolean;
+
+    spawn(x: number, y: number, vx?: number, vy?: number): number;
+
+    kill(slot: number): void;
+
+    clear(): void;
+
+    update(dt: number): void;
+
+    render(): void;
 }
 
 export default Recipes;

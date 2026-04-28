@@ -1,7 +1,7 @@
 /**
- * @zakkster/lite-tools v2.0 — The Standard Library for High-Performance Web Presentation
+ * @zakkster/lite-tools v2.1 — The Standard Library for High-Performance Web Presentation
  *
- * 45+ micro-libraries. 24 ready-made recipes. 1 install.
+ * 45+ micro-libraries. 27 ready-made recipes. 1 install.
  * Zero-GC, deterministic, tree-shakeable.
  *
  * IMPORT PATTERNS:
@@ -125,6 +125,9 @@ export {
     followPath
 }from '@zakkster/lite-steer';
 
+export {SpriteCache} from '@zakkster/lite-sprite-cache';
+export {FastBit32, BitMapper} from '@zakkster/lite-fastbit32';
+
 // Game layer
 export {BitmapFont} from '@zakkster/lite-bmfont';
 export {InputVectorizer} from '@zakkster/lite-gamepad';
@@ -198,6 +201,19 @@ import {RainEngine} from '@zakkster/lite-rain';
 import {SnowEngine as SnowEngineV2} from '@zakkster/lite-snow';
 import {EmberEngine} from '@zakkster/lite-embers';
 import {SmokeEngine} from '@zakkster/lite-smoke';
+
+import {SpriteCache} from '@zakkster/lite-sprite-cache';
+import {
+    FastBit32,
+    BitMapper,
+    forEachArray,
+    forEachMapped,
+    forEachMappedObject,
+    forEachMaskDiff,
+    forEachMaskPair,
+    forEachMaskUnion,
+    forEachObject
+} from '@zakkster/lite-fastbit32';
 
 
 // ═══════════════════════════════════════════════════════════
@@ -297,7 +313,10 @@ export const Recipes = {
                 Pattern.flowTrace(art, {
                     field, rng,
                     particleCount: 800, steps: 300, stepSize: 1.5,
-                    colorFn: (_, t) => { grad.at(t, _c); return _c; },
+                    colorFn: (_, t) => {
+                        grad.at(t, _c);
+                        return _c;
+                    },
                     lineWidth: 0.6, alpha: 0.12
                 });
             });
@@ -385,11 +404,12 @@ export const Recipes = {
                 fx.spawn(x, y, fire);
             },
             moveTo(x, y) {
-                // Mutate in place — ZERO garbage generated
-                well.x = x;
-                well.y = y;
-                vortex.x = x;
-                vortex.y = y;
+                // FXSystem's GravityWell/Vortex store coordinates as .px/.py — NOT .x/.y.
+                // Mutate the actual fields the physics loop reads, in place — zero allocations.
+                well.px = x;
+                well.py = y;
+                vortex.px = x;
+                vortex.py = y;
             },
             destroy() {
                 fx.destroy();
@@ -472,13 +492,28 @@ export const Recipes = {
         };
 
         let mx = 0, my = 0, active = false;
-        canvas.addEventListener('mousemove', (e) => { mx = e.offsetX; my = e.offsetY; active = true; });
-        canvas.addEventListener('mouseleave', () => { active = false; });
-        canvas.addEventListener('touchmove', (e) => {
+        // Named handlers — kept as references so destroy() can remove them.
+        const onMouseMove = (e) => {
+            mx = e.offsetX;
+            my = e.offsetY;
+            active = true;
+        };
+        const onMouseLeave = () => {
+            active = false;
+        };
+        const onTouchMove = (e) => {
             const t = e.touches[0], r = canvas.getBoundingClientRect();
-            mx = t.clientX - r.left; my = t.clientY - r.top; active = true;
-        }, {passive: true});
-        canvas.addEventListener('touchend', () => { active = false; });
+            mx = t.clientX - r.left;
+            my = t.clientY - r.top;
+            active = true;
+        };
+        const onTouchEnd = () => {
+            active = false;
+        };
+        canvas.addEventListener('mousemove', onMouseMove);
+        canvas.addEventListener('mouseleave', onMouseLeave);
+        canvas.addEventListener('touchmove', onTouchMove, {passive: true});
+        canvas.addEventListener('touchend', onTouchEnd);
 
         ticker.add((dt) => {
             // 1. PATCH: Convert the ticker's milliseconds into seconds
@@ -517,6 +552,10 @@ export const Recipes = {
 
         return {
             emitter, tracker, ticker, destroy() {
+                canvas.removeEventListener('mousemove', onMouseMove);
+                canvas.removeEventListener('mouseleave', onMouseLeave);
+                canvas.removeEventListener('touchmove', onTouchMove);
+                canvas.removeEventListener('touchend', onTouchEnd);
                 ticker.destroy();
                 tracker.destroy();
                 emitter.destroy();
@@ -542,10 +581,11 @@ export const Recipes = {
         for (let i = 0; i < starCount; i++) {
             stars.push({
                 x: rng.next(), y: rng.next(),
-                sz: 0.5 + rng.next() * 2, sp: 0.5 + rng.next() * 3,
-                ph: rng.next() * Math.PI * 2,
-                h: rng.next() < 0.1 ? rng.range(200, 280) : rng.range(40, 70),
-                br: rng.next() < 0.05,
+                size: 0.5 + rng.next() * 2,
+                speed: 0.5 + rng.next() * 3,
+                phase: rng.next() * Math.PI * 2,
+                hue: rng.next() < 0.1 ? rng.range(200, 280) : rng.range(40, 70),
+                bright: rng.next() < 0.05,
             });
         }
         // Pre-allocate a single color object for all stars (zero GC in hot path)
@@ -560,14 +600,14 @@ export const Recipes = {
             ctx.fillRect(0, 0, W, H);
             for (let i = 0; i < starCount; i++) {
                 const s = stars[i];
-                const tw = (Math.sin(time * s.sp * twinkleSpeed + s.ph) + 1) / 2;
-                _tc.l = s.br ? 0.85 + tw * 0.15 : 0.5 + tw * 0.3;
-                _tc.c = s.br ? 0.05 : 0.02;
-                _tc.h = s.h;
+                const tw = (Math.sin(time * s.speed * twinkleSpeed + s.phase) + 1) / 2;
+                _tc.l = s.bright ? 0.85 + tw * 0.15 : 0.5 + tw * 0.3;
+                _tc.c = s.bright ? 0.05 : 0.02;
+                _tc.h = s.hue;
                 _tc.a = 0.3 + tw * 0.7;
                 ctx.fillStyle = toCssOklch(_tc);
                 ctx.beginPath();
-                ctx.arc(s.x * W, s.y * H, s.sz * (0.8 + tw * 0.4), 0, Math.PI * 2);
+                ctx.arc(s.x * W, s.y * H, s.size * (0.8 + tw * 0.4), 0, Math.PI * 2);
                 ctx.fill();
             }
         });
@@ -601,7 +641,8 @@ export const Recipes = {
 
         fsm.onEnter('open', () => spring.set(1));
         fsm.onEnter('closed', () => spring.set(0));
-        toggleEl.addEventListener('click', () => fsm.set(fsm.is('closed') ? 'open' : 'closed'));
+        const onToggleClick = () => fsm.set(fsm.is('closed') ? 'open' : 'closed');
+        toggleEl.addEventListener('click', onToggleClick);
 
         const animate = () => {
             const val = spring.update(1 / 60);
@@ -630,6 +671,7 @@ export const Recipes = {
                 fsm.set(fsm.is('closed') ? 'open' : 'closed');
             },
             destroy() {
+                toggleEl.removeEventListener('click', onToggleClick);
                 if (rafId) cancelAnimationFrame(rafId);
                 fsm.destroy();
             },
@@ -644,7 +686,7 @@ export const Recipes = {
 
     noiseHeatmap(canvas, {
         seed = 42, scale = 0.02, cellSize = 4, animate = false,
-        gradientColors = [
+        gradient: gradientColors = [
             {l: 0.15, c: 0.10, h: 240}, {l: 0.35, c: 0.15, h: 210},
             {l: 0.50, c: 0.18, h: 130}, {l: 0.60, c: 0.08, h: 50},
             {l: 0.92, c: 0.02, h: 0},
@@ -679,7 +721,8 @@ export const Recipes = {
         if (animate) {
             let lt = performance.now();
             const loop = (now) => {
-                const dt = Math.min((now - lt) / 1000, 0.1); lt = now;
+                const dt = Math.min((now - lt) / 1000, 0.1);
+                lt = now;
                 t += dt * 0.5;
                 render(t);
                 rafId = requestAnimationFrame(loop);
@@ -739,10 +782,19 @@ export const Recipes = {
 
         return {
             fx: engine, ticker,
-            stop() { isAuto = false; },
-            resume() { isAuto = true; },
-            manualBurst(x, y) { engine.launch(x, height, y); },
-            destroy() { ticker.destroy(); engine.destroy(); },
+            stop() {
+                isAuto = false;
+            },
+            resume() {
+                isAuto = true;
+            },
+            manualBurst(x, y) {
+                engine.launch(x, height, y);
+            },
+            destroy() {
+                ticker.destroy();
+                engine.destroy();
+            },
         };
     },
 
@@ -769,8 +821,13 @@ export const Recipes = {
 
         return {
             fx: snow, ticker,
-            setWind(w) { snow.config.wind = w; },
-            destroy() { ticker.destroy(); snow.destroy(); },
+            setWind(w) {
+                snow.config.wind = w;
+            },
+            destroy() {
+                ticker.destroy();
+                snow.destroy();
+            },
         };
     },
 
@@ -824,11 +881,15 @@ export const Recipes = {
         let startTime = 0, replayRaf = null;
         const fsm = new FSM('idle', {idle: ['recording', 'replaying'], recording: ['idle'], replaying: ['idle']});
         const registeredRecipes = {};
+        // Local id-indexed array — avoids reaching into fx._recipes (engine internals).
+        const recipesById = [];
 
         return {
             fx, fsm,
             registerRecipe(name, preset) {
-                registeredRecipes[name] = fx.register(preset);
+                const r = fx.register(preset);
+                registeredRecipes[name] = r;
+                recipesById[r.id] = r;
             },
             startRecording() {
                 tapeHead = 0;
@@ -868,7 +929,7 @@ export const Recipes = {
                         const off = idx * 4;
                         if (tape[off + 2] > t) break;
                         const rId = tape[off + 3];
-                        const r = fx._recipes?.[rId];
+                        const r = recipesById[rId];
                         if (r) fx.spawn(tape[off], tape[off + 1], r);
                         idx++;
                     }
@@ -970,16 +1031,24 @@ export const Recipes = {
 
         return {
             viewport, ctx: viewport.ctx, ticker, rng, fsm, fx, meter,
-            get width() { return viewport.width; },
-            get height() { return viewport.height; },
+            get width() {
+                return viewport.width;
+            },
+            get height() {
+                return viewport.height;
+            },
             onUpdate(fn) {
                 // Wraps user callback to only fire during 'playing' state
                 return ticker.add((dt) => {
                     if (fsm.current === 'playing') fn(dt);
                 });
             },
-            setState(s) { return fsm.set(s); },
-            get state() { return fsm.current; },
+            setState(s) {
+                return fsm.set(s);
+            },
+            get state() {
+                return fsm.current;
+            },
             start() {
                 fsm.set('ready');
                 fsm.set('playing');
@@ -1054,6 +1123,10 @@ export const Recipes = {
      * Composes: lite-noise + lite-gradient + lite-camera + lite-random
      */
     proceduralWorld(canvas, options = {}) {
+        if (!canvas) {
+            console.warn('@zakkster/lite-tools [proceduralWorld]: canvas required');
+            return _NOOP;
+        }
         const {seed = 42, cellSize = 8, scale = 0.02} = options;
         const ctx = canvas.getContext('2d');
         const rng = new Random(seed);
@@ -1072,7 +1145,8 @@ export const Recipes = {
             {l: 0.95, c: 0.02, h: 0},   // snow
         ]);
         const _colorOut = {l: 0, c: 0, h: 0};
-        let target = {x: w * 2, y: h * 2};
+        // Pre-allocate the camera target so moveTo() doesn't allocate per call.
+        const target = {x: w * 2, y: h * 2};
 
         function render(dt) {
             cam.update(dt, target.x, target.y);
@@ -1097,7 +1171,9 @@ export const Recipes = {
         return {
             render, cam,
             moveTo(x, y) {
-                target = {x, y};
+                // Mutate in place — zero allocations even when called every frame.
+                target.x = x;
+                target.y = y;
             },
             reseed(s) {
                 seedNoise(s);
@@ -1148,18 +1224,27 @@ export const Recipes = {
         // 2. Pre-allocate the Zero-GC buffer for the engine to write into
         // Max possible path length is width * height. 2 floats (x,y) per waypoint.
         const pathBuffer = new Float32Array(width * height * 2);
+        // Reusable result array — cleared and re-populated on each findPath call.
+        // Avoids allocating a new outer array per pathfinding query.
+        const pathResult = [];
 
         function findPath(sx, sy, ex, ey) {
-            // 3. Call the correct method with the buffer
             const waypointCount = finder.findPath(sx, sy, ex, ey, pathBuffer);
-
-            // 4. Format the flat buffer [x, y, x, y] into the expected Array of [x,y] pairs
-            const path = [];
+            // Trim or grow the cached array to match waypoint count.
+            pathResult.length = waypointCount;
             for (let i = 0; i < waypointCount; i++) {
-                path.push([pathBuffer[i * 2], pathBuffer[(i * 2) + 1]]);
+                // Reuse existing tuple slot if present, else create a new one.
+                const slot = pathResult[i];
+                if (slot) {
+                    slot[0] = pathBuffer[i * 2];
+                    slot[1] = pathBuffer[(i * 2) + 1];
+                } else {
+                    pathResult[i] = [pathBuffer[i * 2], pathBuffer[(i * 2) + 1]];
+                }
             }
-            return path;
+            return pathResult;
         }
+
         // ---------------------------------
 
         function renderToCanvas(ctx, tileSize = 16) {
@@ -1172,7 +1257,10 @@ export const Recipes = {
         }
 
         return {
-            grid, width, height, spatial, isWalkable, findPath, renderToCanvas, destroy() {
+            grid, width, height, spatial, isWalkable, findPath, pathBuffer, renderToCanvas,
+            destroy() {
+                spatial.destroy();
+                pathResult.length = 0;
             }
         };
     },
@@ -1257,12 +1345,18 @@ export const Recipes = {
      * Composes: lite-steer + lite-vec + lite-spatial + lite-random
      */
     boidsSimulation(canvas, options = {}) {
+        if (!canvas) {
+            console.warn('@zakkster/lite-tools [boidsSimulation]: canvas required');
+            return _NOOP;
+        }
         const {count = 100, seed = 42} = options;
         const ctx = canvas.getContext('2d');
         const rng = new Random(seed);
         const w = canvas.width, h = canvas.height;
         const spatial = new SpatialGrid(w, h, 64, count);
-        const _queryBuf = new Int32Array(64);
+        // SpatialGrid.queryBox SILENTLY TRUNCATES at outBuffer.length.
+        // Sizing to `count` guarantees we never miss a neighbor in a dense flock.
+        const _queryBuf = new Int32Array(count);
         const agents = [];
 
         for (let i = 0; i < count; i++) {
@@ -1350,11 +1444,18 @@ export const Recipes = {
     gestureCarousel(container, slides, options = {}) {
         const {stiffness = 200, damping = 22} = options;
         const el = typeof container === 'string' ? document.querySelector(container) : container;
-        if (!el) return {
-            goTo() {
-            }, destroy() {
-            }
-        };
+        if (!el) {
+            console.warn('@zakkster/lite-tools [gestureCarousel]: container not found');
+            return {
+                goTo() {
+                },
+                getCurrentIndex() {
+                    return 0;
+                },
+                destroy() {
+                }
+            };
+        }
         let currentIndex = 0, offsetX = 0;
         const slideWidth = el.clientWidth || 300;
 
@@ -1451,12 +1552,15 @@ export const Recipes = {
      * Composes: lite-sparks + lite-fireworks + lite-camera
      */
     sparkImpact(canvas, options = {}) {
+        if (!canvas) {
+            console.warn('@zakkster/lite-tools [sparkImpact]: canvas required');
+            return _NOOP;
+        }
         const {maxSparks = 5000, maxFireworks = 3000, shakeIntensity = 0.6} = options;
         const ctx = canvas.getContext('2d');
         const sparks = new SparkEngine(maxSparks);
         const fireworks = new FireworksEngine(maxFireworks);
-        let w = canvas.width, h = canvas.height;
-        const cam = new CinematicCamera(w, h, w, h, 42);
+        const cam = new CinematicCamera(canvas.width, canvas.height, canvas.width, canvas.height, 42);
         cam.lerpSpeed = 20.0;
         cam.shakeMaxOffset = 12;
 
@@ -1467,11 +1571,16 @@ export const Recipes = {
         }
 
         function update(dt) {
+            // Read canvas dims live so resize works.
+            const w = canvas.width, h = canvas.height;
             cam.update(dt, w * 0.5, h * 0.5);
             ctx.save();
             cam.apply(ctx);
-            fireworks.updateAndDraw(ctx, dt, w, h);
+            // ORDER MATTERS: SparkEngine.updateAndDraw unconditionally clears the canvas.
+            // Run sparks FIRST so it clears, then fireworks composites its fade-trail
+            // overlay + 'lighter'-blended particles on top — both effects stay visible.
             sparks.updateAndDraw(ctx, dt, w, h);
+            fireworks.updateAndDraw(ctx, dt, w, h);
             ctx.restore();
         }
 
@@ -1489,17 +1598,29 @@ export const Recipes = {
      * Composes: lite-audio-pool + lite-embers + lite-ease + lite-gradient
      */
     audioReactiveVFX(canvas, options = {}) {
+        if (!canvas) {
+            console.warn('@zakkster/lite-tools [audioReactiveVFX]: canvas required');
+            return _NOOP;
+        }
         const {maxEmbers = 4000} = options;
         const ctx = canvas.getContext('2d');
         const embers = new EmberEngine(maxEmbers, {buoyancy: 200, driftAmplitude: 40});
-        let audioCtx = null, analyser = null, freqData = null;
+        let audioCtx = null, analyser = null, freqData = null, srcNode = null;
 
         function connectAudio(sourceNode) {
             if (!audioCtx) audioCtx = sourceNode.context;
+            // Disconnect any previous source so destroy() can leave the graph clean.
+            if (srcNode && analyser) {
+                try {
+                    srcNode.disconnect(analyser);
+                } catch {
+                }
+            }
             analyser = audioCtx.createAnalyser();
             analyser.fftSize = 256;
             freqData = new Uint8Array(analyser.frequencyBinCount);
             sourceNode.connect(analyser);
+            srcNode = sourceNode;
         }
 
         function update(dt, w, h) {
@@ -1523,8 +1644,438 @@ export const Recipes = {
         }
 
         return {
-            connectAudio, update, embers, destroy() {
+            connectAudio, update, embers,
+            destroy() {
+                // Tear down the audio graph so we don't leak AnalyserNodes
+                // or hold the user's source node hostage on SPA unmount.
+                if (srcNode && analyser) {
+                    try {
+                        srcNode.disconnect(analyser);
+                    } catch {
+                    }
+                }
+                if (analyser) {
+                    try {
+                        analyser.disconnect();
+                    } catch {
+                    }
+                }
+                analyser = null;
+                freqData = null;
+                srcNode = null;
+                audioCtx = null;
                 embers.destroy();
+            }
+        };
+    },
+
+    // ═══════════════════════════════════════════════════════════
+    //  v2.1 — SpriteCache + FastBit32 Recipes (25–27)
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * 25. Tile Map Streamer — Pannable tiled world with FastBit32 diff-based chunk streaming.
+     *
+     * Tracks the visible chunk set as a 32-bit mask. Each frame, an XOR against the previous
+     * mask isolates *only* the chunks that crossed the viewport boundary — those alone trigger
+     * `cache.load()` (entered) or `cache.dispose()` (exited). Stationary chunks are never touched.
+     * O(k) per frame on chunks-changed, not on chunks-visible.
+     *
+     * Composes: lite-sprite-cache (LRU + ref-counting + dedup) + lite-fastbit32 (XOR diff + forEach)
+     */
+    tileMapStreamer(canvas, options = {}) {
+        if (!canvas) {
+            console.warn('@zakkster/lite-tools [tileMapStreamer]: canvas required');
+            return _NOOP;
+        }
+        const {
+            tileSize = 128,
+            gridCols = 8,
+            gridRows = 4,
+            tileUrl = (bit) => `/tiles/tile_${bit}.png`,
+            maxMemoryMB = 100,
+            fallbackColor = {l: 0.18, c: 0.04, h: 240},
+            gridLineColor = {l: 0.4, c: 0.06, h: 240, a: 0.25},
+            showGrid = false
+        } = options;
+
+        const totalTiles = Math.min(32, gridCols * gridRows);
+        if (gridCols * gridRows > 32) {
+            console.warn('@zakkster/lite-tools [tileMapStreamer]: cols*rows>32, capped to 32 (FastBit32 width)');
+        }
+
+        const ctx = canvas.getContext('2d');
+        const cache = new SpriteCache({maxMemoryMB});
+
+        const current = new FastBit32(0);
+        const previous = new FastBit32(0);
+        const diff = new FastBit32(0);
+
+        const fallbackCss = toCssOklch(fallbackColor);
+        const gridCss = toCssOklch(gridLineColor);
+
+        let panX = 0, panY = 0;
+
+        function _maskFromPan() {
+            let mask = 0;
+            for (let i = 0; i < totalTiles; i++) {
+                const tx = (i % gridCols) * tileSize - panX;
+                const ty = Math.floor(i / gridCols) * tileSize - panY;
+                if (tx + tileSize > 0 && tx < canvas.width &&
+                    ty + tileSize > 0 && ty < canvas.height) {
+                    mask |= (1 << i);
+                }
+            }
+            return mask >>> 0;
+        }
+
+        function setActiveMask(mask) {
+            previous.value = current.value;
+            current.value = mask >>> 0;
+            diff.value = current.value ^ previous.value;
+            if (diff.isEmpty()) return;
+
+            // O(k) — iterate only the bits that changed state, not all visible.
+            diff.forEach(bit => {
+                if (current.has(bit)) cache.load(`tile-${bit}`, tileUrl(bit));
+                else cache.dispose(`tile-${bit}`);
+            });
+        }
+
+        function panTo(x, y) {
+            panX = x;
+            panY = y;
+            setActiveMask(_maskFromPan());
+        }
+
+        function panBy(dx, dy) {
+            panTo(panX + dx, panY + dy);
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // O(k) over visible chunks only — never iterate the full grid.
+            current.forEach(bit => {
+                const bmp = cache.get(`tile-${bit}`);
+                const tx = (bit % gridCols) * tileSize - panX;
+                const ty = Math.floor(bit / gridCols) * tileSize - panY;
+
+                if (bmp) {
+                    ctx.drawImage(bmp, tx, ty, tileSize, tileSize);
+                } else {
+                    // Procedural fallback while async fetch resolves
+                    ctx.fillStyle = fallbackCss;
+                    ctx.fillRect(tx, ty, tileSize, tileSize);
+                }
+
+                if (showGrid) {
+                    ctx.strokeStyle = gridCss;
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(tx + 0.5, ty + 0.5, tileSize - 1, tileSize - 1);
+                }
+            });
+        }
+
+        // Bootstrap initial mask
+        setActiveMask(_maskFromPan());
+
+        return {
+            cache, panTo, panBy, setActiveMask, render,
+            get visibleCount() {
+                return current.count();
+            },
+            get loadedCount() {
+                return cache.stats().items;
+            },
+            get stats() {
+                return cache.stats();
+            },
+            destroy() {
+                cache.clearAll();
+            }
+        };
+    },
+
+    /**
+     * 26. Asset Preloader — Animated load screen with FastBit32 progress tracking.
+     *
+     * Each asset gets a bit. Completion is `loadState.hasAll(totalMask)` — O(1), branch-free.
+     * Progress is `loadState.count() / total` — O(1) Hamming weight, no array scan.
+     * Renders an OKLCH progress arc and per-slot tick marks driven straight off the bitmask.
+     *
+     * Composes: lite-sprite-cache (parallel loadAll + ref-counting) + lite-fastbit32 (BitMapper + popcount)
+     */
+    assetPreloader(canvas, assets, options = {}) {
+        if (!canvas) {
+            console.warn('@zakkster/lite-tools [assetPreloader]: canvas required');
+            return _NOOP;
+        }
+        if (!Array.isArray(assets) || assets.length === 0) {
+            console.warn('@zakkster/lite-tools [assetPreloader]: assets[] required');
+            return _NOOP;
+        }
+        if (assets.length > 32) {
+            console.warn('@zakkster/lite-tools [assetPreloader]: max 32 assets per preloader (FastBit32 width)');
+            return _NOOP;
+        }
+
+        const {
+            brandColor = {l: 0.7, c: 0.22, h: 280},
+            bgColor = {l: 0.1, c: 0.02, h: 280},
+            onProgress,
+            onComplete
+        } = options;
+
+        const ctx = canvas.getContext('2d');
+        const cache = new SpriteCache();
+
+        const names = assets.map(a => a.id);
+        const mapper = new BitMapper(names);
+        const loadState = new FastBit32(0);
+        const totalMask = names.length === 32 ? 0xFFFFFFFF >>> 0 : ((1 << names.length) - 1) >>> 0;
+
+        let isComplete = false;
+        let cancelled = false;
+        let lastReportedProgress = -1;
+
+        // Fire all loads in parallel; SpriteCache will dedup any shared URLs.
+        for (const a of assets) {
+            cache.load(a.id, a.url).then(bmp => {
+                if (cancelled || !bmp) return;
+                loadState.add(mapper.get(a.id));
+                if (!isComplete && loadState.hasAll(totalMask)) {
+                    isComplete = true;
+                    onComplete?.();
+                }
+            });
+        }
+
+        const brandCss = toCssOklch(brandColor);
+        const dimBrandCss = toCssOklch({l: brandColor.l, c: brandColor.c, h: brandColor.h, a: 0.18});
+        const bgCss = toCssOklch(bgColor);
+
+        function render() {
+            const w = canvas.width, h = canvas.height;
+            ctx.fillStyle = bgCss;
+            ctx.fillRect(0, 0, w, h);
+
+            const loaded = loadState.count();
+            const progress = loaded / names.length;
+
+            if (progress !== lastReportedProgress) {
+                lastReportedProgress = progress;
+                onProgress?.(progress);
+            }
+
+            const cx = w * 0.5, cy = h * 0.5;
+            const r = Math.min(w, h) * 0.18;
+
+            // Track ring
+            ctx.strokeStyle = dimBrandCss;
+            ctx.lineWidth = 8;
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Progress arc
+            ctx.strokeStyle = brandCss;
+            ctx.lineWidth = 8;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, -Math.PI * 0.5, -Math.PI * 0.5 + progress * Math.PI * 2);
+            ctx.stroke();
+
+            // Centered counter
+            ctx.fillStyle = brandCss;
+            ctx.font = `bold ${Math.floor(r * 0.45)}px ui-monospace, monospace`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`${loaded}/${names.length}`, cx, cy);
+
+            // Per-slot tick marks driven directly off the bitmask — purely O(k)
+            const tickRadius = r * 1.35;
+            const slotAngleStep = (Math.PI * 2) / names.length;
+            for (let i = 0; i < names.length; i++) {
+                const a = -Math.PI * 0.5 + i * slotAngleStep;
+                const tx = cx + Math.cos(a) * tickRadius;
+                const ty = cy + Math.sin(a) * tickRadius;
+                ctx.fillStyle = loadState.has(i) ? brandCss : dimBrandCss;
+                ctx.beginPath();
+                ctx.arc(tx, ty, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        return {
+            cache, mapper, loadState, render,
+            get progress() {
+                return loadState.count() / names.length;
+            },
+            get isComplete() {
+                return isComplete;
+            },
+            getSprite(name) {
+                return cache.get(name);
+            },
+            destroy() {
+                cancelled = true;
+                cache.clearAll();
+            }
+        };
+    },
+
+    /**
+     * 27. VRAM Sprite Pool — Zero-GC sprite swarm pinned to a single cached texture.
+     *
+     * Active slots tracked in a FastBit32. Spawn finds a free slot via O(1) `nextClearBit()` —
+     * NO allocations in hot path. Update + render iterate active bits via popcount-style loop.
+     * Single shared ImageBitmap, ref-counted by SpriteCache. Bounce + gravity + life decay built-in.
+     *
+     * Composes: lite-sprite-cache (single VRAM-pinned bitmap) + lite-fastbit32 (alloc-free pool slots)
+     */
+    vramSpritePool(canvas, textureUrl, options = {}) {
+        if (!canvas) {
+            console.warn('@zakkster/lite-tools [vramSpritePool]: canvas required');
+            return _NOOP;
+        }
+        if (!textureUrl) {
+            console.warn('@zakkster/lite-tools [vramSpritePool]: textureUrl required');
+            return _NOOP;
+        }
+
+        const {
+            maxSprites = 32,
+            gravity = 600,
+            bounce = 0.7,
+            lifeMs = 4000,
+            size = 32,
+            angularJitter = 8
+        } = options;
+
+        if (maxSprites > 32) {
+            console.warn('@zakkster/lite-tools [vramSpritePool]: max 32 sprites per pool (FastBit32 width); capping');
+        }
+        const cap = Math.min(Math.max(1, maxSprites | 0), 32);
+
+        const ctx = canvas.getContext('2d');
+        const cache = new SpriteCache();
+        let texture = null;
+        cache.load('pool-texture', textureUrl).then(bmp => {
+            texture = bmp;
+        });
+
+        // Zero-GC SoA pool — Float32Arrays + 32-bit active mask
+        const activeMask = new FastBit32(0);
+        const x = new Float32Array(cap);
+        const y = new Float32Array(cap);
+        const vx = new Float32Array(cap);
+        const vy = new Float32Array(cap);
+        const life = new Float32Array(cap);
+        const rot = new Float32Array(cap);
+        const angVel = new Float32Array(cap);
+
+        function spawn(startX, startY, startVx = 0, startVy = -300) {
+            // O(1), allocation-free free-slot lookup.
+            const slot = activeMask.nextClearBit();
+            if (slot === -1 || slot >= cap) return -1;
+
+            activeMask.add(slot);
+            x[slot] = startX;
+            y[slot] = startY;
+            vx[slot] = startVx;
+            vy[slot] = startVy;
+            life[slot] = lifeMs;
+            rot[slot] = 0;
+            angVel[slot] = (Math.random() - 0.5) * angularJitter;
+            return slot;
+        }
+
+        function kill(slot) {
+            activeMask.remove(slot);
+        }
+
+        function clear() {
+            activeMask.clear();
+        }
+
+        function update(dt) {
+            if (activeMask.isEmpty()) return;
+            const w = canvas.width, h = canvas.height;
+            const dtSec = dt * 0.001;
+            const half = size * 0.5;
+
+            // O(k) — iterate ONLY active bits.
+            let active = activeMask.value;
+            while (active !== 0) {
+                const i = Math.clz32(active & -active) ^ 31;
+                active &= active - 1;
+
+                life[i] -= dt;
+                if (life[i] <= 0) {
+                    activeMask.remove(i);
+                    continue;
+                }
+
+                vy[i] += gravity * dtSec;
+                x[i] += vx[i] * dtSec;
+                y[i] += vy[i] * dtSec;
+                rot[i] += angVel[i] * dtSec;
+
+                // Floor
+                if (y[i] > h - half) {
+                    y[i] = h - half;
+                    vy[i] *= -bounce;
+                    vx[i] *= 0.95;
+                }
+                // Walls
+                if (x[i] < half) {
+                    x[i] = half;
+                    vx[i] *= -bounce;
+                } else if (x[i] > w - half) {
+                    x[i] = w - half;
+                    vx[i] *= -bounce;
+                }
+            }
+        }
+
+        function render() {
+            if (!texture || activeMask.isEmpty()) return;
+            const half = size * 0.5;
+
+            let active = activeMask.value;
+            while (active !== 0) {
+                const i = Math.clz32(active & -active) ^ 31;
+                active &= active - 1;
+
+                ctx.save();
+                ctx.translate(x[i], y[i]);
+                ctx.rotate(rot[i]);
+                ctx.globalAlpha = life[i] < 500 ? life[i] / 500 : 1;
+                ctx.drawImage(texture, -half, -half, size, size);
+                ctx.restore();
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        return {
+            spawn, kill, clear, update, render, cache,
+            get count() {
+                return activeMask.count();
+            },
+            get capacity() {
+                return cap;
+            },
+            get isFull() {
+                return activeMask.count() >= cap;
+            },
+            get textureLoaded() {
+                return texture !== null;
+            },
+            destroy() {
+                cache.dispose('pool-texture');
+                cache.clearAll();
+                activeMask.clear();
             }
         };
     },

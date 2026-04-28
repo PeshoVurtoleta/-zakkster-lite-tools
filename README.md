@@ -29,6 +29,85 @@ The standard library for high-performance web presentation.
 | **Theme Generation** | **Yes** | No | No | No | No |
 | **Bundle Size** | **Tiny** | Large | Large | Large | Large |
 
+## Ecosystem at a Glance
+
+```mermaid
+flowchart LR
+    subgraph FOUNDATION["🧱 Foundation (zero deps)"]
+        F1[lerp]
+        F2[ease]
+        F3[id]
+        F4[vec]
+        F5[sat]
+    end
+    subgraph CORE["🎨 Core Primitives"]
+        C1[color · OKLCH]
+        C2[random · seeded]
+        C3[noise · simplex / fbm]
+        C4[fastbit32 · masks]
+    end
+    subgraph DATA["💾 Data & Assets"]
+        D1[sprite-cache · LRU + refcount]
+        D2[object-pool]
+        D3[audio-pool]
+        D4[bmfont]
+    end
+    subgraph PARTICLES["✨ Particle Engines"]
+        P1[particles · OOP]
+        P2[soa-particle-engine · zero-GC]
+        P3[fx · presets + forces]
+    end
+    subgraph VFX["🌧️ VFX Suite"]
+        V1[fireworks]
+        V2[sparks]
+        V3[rain]
+        V4[snow]
+        V5[embers]
+        V6[smoke]
+    end
+    subgraph GAME["🎮 Game Layer"]
+        G1[spatial · hash grid]
+        G2[steer · boids]
+        G3[path · A*]
+        G4[wfc · procedural]
+        G5[camera · cinematic]
+        G6[shadow · 2D vis]
+    end
+    subgraph UI["🖱️ UI & Animation"]
+        U1[ui · scroll/tilt/magnetic]
+        U2[gesture · swipe/pinch]
+        U3[tween + spring + timeline]
+        U4[confetti]
+    end
+
+    F1 --> C1
+    F1 --> P3
+    F2 --> U3
+    C2 --> P2
+    C2 --> C3
+    C2 --> G4
+    C1 --> V1
+    C1 --> V5
+    P2 --> P3
+    P3 --> V1
+    P3 --> V2
+    D1 --> RECIPES["🍳 27 Recipes"]
+    C4 --> RECIPES
+    VFX --> RECIPES
+    GAME --> RECIPES
+    UI --> RECIPES
+    PARTICLES --> RECIPES
+
+    style FOUNDATION fill:#1a1a2e,stroke:#7c3aed,color:#fff
+    style CORE fill:#16213e,stroke:#06b6d4,color:#fff
+    style DATA fill:#0f3460,stroke:#fbbf24,color:#fff
+    style PARTICLES fill:#1a1a2e,stroke:#f43f5e,color:#fff
+    style VFX fill:#16213e,stroke:#10b981,color:#fff
+    style GAME fill:#0f3460,stroke:#f59e0b,color:#fff
+    style UI fill:#1a1a2e,stroke:#ec4899,color:#fff
+    style RECIPES fill:#7c3aed,stroke:#fbbf24,color:#fff,stroke-width:3px
+```
+
 ## Installation
 
 ```bash
@@ -92,7 +171,7 @@ import { Recipes } from '@zakkster/lite-tools';
 Every recipe validates DOM selectors (returns a safe no-op if elements aren't found), exposes `destroy()` for SPA cleanup, and composes multiple @zakkster libraries into a single function call.
 
 <details>
-<summary><strong>🎨 1. Branded Generative Background</strong> — <code>lite-theme-gen + lite-gen + lite-color</code></summary>
+<summary><strong>🎨 1. Branded Generative Background</strong> — <code>lite-theme-gen + lite-gen + lite-gradient + lite-color</code></summary>
 
 Generate a dynamic flowing background where every color is mathematically derived from a single brand color. Guaranteed to never clash.
 
@@ -197,7 +276,7 @@ const { destroy } = Recipes.particleCursor(overlayCanvas, {
 </details>
 
 <details>
-<summary><strong>🌌 6. Procedural Starfield</strong> — <code>lite-gen + lite-random + lite-color + lite-viewport</code></summary>
+<summary><strong>🌌 6. Procedural Starfield</strong> — <code>lite-random + lite-viewport + lite-ticker + lite-color</code></summary>
 
 Deterministic twinkling starfield. Same seed = same stars on any screen size. DPR-aware via Viewport auto-resize.
 
@@ -239,7 +318,7 @@ menu.toggle(); // toggle state
 </details>
 
 <details>
-<summary><strong>🗺️ 8. Interactive Noise Heatmap</strong> — <code>lite-gen + lite-color + lite-random</code></summary>
+<summary><strong>🗺️ 8. Interactive Noise Heatmap</strong> — <code>lite-noise + lite-gradient + lite-color</code></summary>
 
 FBM noise heatmap with a 6-stop OKLCH terrain gradient. Click to reseed for completely different landscapes.
 
@@ -261,12 +340,12 @@ map.reseed();       // new terrain
 map.reseed(12345);  // specific seed
 ```
 
-**Composes:** `GenEngine` + `fbm2()` + `Gradient` class
+**Composes:** `seedNoise()` + `fbm2()` + `Gradient` class
 
 </details>
 
 <details>
-<summary><strong>🎆 9. Choreographed Firework Show</strong> — <code>lite-fx + lite-ticker + lite-random + lite-color</code></summary>
+<summary><strong>🎆 9. Choreographed Firework Show</strong> — <code>lite-fireworks + lite-ticker + lite-random</code></summary>
 
 Automated firework sequence with 7 color-coordinated burst recipes. Interactive + automatic modes.
 
@@ -287,9 +366,9 @@ show.resume();            // resume
 </details>
 
 <details>
-<summary><strong>❄️ 10. Ambient Snowfall</strong> — <code>lite-fx + lite-gen (turbulence) + lite-color</code></summary>
+<summary><strong>❄️ 10. Ambient Snowfall</strong> — <code>lite-snow + lite-ticker</code></summary>
 
-Continuous snowfall with wind and turbulence force fields. Change wind direction in real time.
+Continuous snowfall with wind and depth-based parallax. `setWind()` updates the engine config in place — note that `SnowEngine` precomputes per-particle `wz` at spawn time, so wind changes ramp in over the lifetime of new flakes rather than snapping instantly.
 
 ```javascript
 import { Recipes } from '@zakkster/lite-tools';
@@ -299,11 +378,11 @@ const snow = Recipes.snowfall(ctx, canvas.width, canvas.height, {
     turbulenceStrength: 60,
 });
 
-snow.setWind(-50);  // blow left
+snow.setWind(-50);  // blow left (effects ramp over ~lifetime of newly-spawned flakes)
 snow.setWind(80);   // blow right hard
 ```
 
-**Composes:** `FXSystem` + `Wind` + `Turbulence` + `Ticker.setInterval` + `EmitterShape.line`
+**Composes:** `SnowEngine` (SoA particles, Z-depth bucketed render, ellipse melt) + `Ticker`
 
 </details>
 
@@ -449,9 +528,11 @@ world.reseed(9999);
 </details>
 
 <details>
-<summary><strong>🏰 17. Dungeon Generator</strong> — <code>lite-wfc + lite-spatial + lite-path</code></summary>
+<summary><strong>🏰 17. Dungeon Generator</strong> — <code>lite-spatial + lite-path</code></summary>
 
-Random dungeon generation with spatial indexing and A* pathfinding overlay.
+Noise-based dungeon generation with a SpatialGrid for entity bookkeeping and an A* `Pathfinder` writing into a pre-allocated buffer (zero-GC pathfinding).
+
+> **Note on naming:** earlier docs called this "WFC dungeon generation" — that was aspirational. The current implementation is noise-thresholded (open if `rng.next() > 0.4`), with sealed borders. Wave Function Collapse via `lite-wfc` is on the roadmap; the current recipe focuses on the spatial + pathfinding integration story.
 
 ```javascript
 import { Recipes } from '@zakkster/lite-tools';
@@ -461,15 +542,17 @@ const dungeon = Recipes.dungeonGenerator({ width: 48, height: 48, seed: 42 });
 // Render to canvas
 dungeon.renderToCanvas(ctx, 12); // 12px tiles
 
-// Pathfind between two floor tiles
+// Pathfind between two floor tiles — returns reused [x, y] tuples (do not retain across calls)
 const path = dungeon.findPath(5, 5, 40, 40);
 
-// Spatial queries for nearby entities
-dungeon.spatial.insert(enemy, enemy.x, enemy.y, 8, 8);
-const nearby = dungeon.spatial.queryRadius(player.x, player.y, 64, outBuffer, true);
+// Spatial queries: SpatialGrid.insert takes (id, x, y) — id maps back to your own entity table.
+dungeon.spatial.clear();
+for (const enemy of enemies) dungeon.spatial.insert(enemy.id, enemy.x, enemy.y);
+const outBuffer = new Int32Array(64);
+const hitCount = dungeon.spatial.queryRadius(player.x, player.y, 64, outBuffer, true);
 ```
 
-**Composes:** `Random` + `SpatialGrid` + `Pathfinder`
+**Composes:** `Random` + `SpatialGrid` (linked-list buckets, O(1) insert) + `Pathfinder` (zero-GC into pre-allocated `pathBuffer`)
 
 </details>
 
@@ -499,25 +582,27 @@ fire.update(dt, w, h);
 <details>
 <summary><strong>🌧️ 19. Weather System</strong> — <code>lite-rain + lite-snow</code></summary>
 
-Dynamic weather with real-time mode switching and wind ramping. Rain and snow share the same pool size and wind target.
+Dynamic weather with mode switching and exponential wind ramping. Rain and snow share the same pool size and wind target.
+
+> **Note:** `RainEngine` and `SnowEngine` precompute per-particle `wz = wind * z` at spawn time, so `setWind()` ramps in over the lifetime of newly spawned particles rather than instantly retargeting all in-flight drops/flakes. This is intentional — it preserves visual coherence — but if you want a hard snap, call `setMode()` (which clears active particles).
 
 ```javascript
 import { Recipes } from '@zakkster/lite-tools';
 
 const weather = Recipes.weatherSystem(canvas, { mode: 'rain', maxParticles: 10000 });
 
-// Real-time wind control
+// Wind retarget — ramps over particle lifetime
 weather.setWind(300);   // strong right
 weather.setWind(-100);  // gentle left
 
-// Switch weather type (clears existing particles)
+// Switch weather type — clears existing particles for an instant transition
 weather.setMode('snow');
 
 // In render loop
 weather.update(dt, w, h);
 ```
 
-**Composes:** `RainEngine` (Z-depth parallax, splash metamorphosis) + `SnowEngine` (sinusoidal drift, melt ellipses)
+**Composes:** `RainEngine` (Z-depth parallax, splash metamorphosis, terminal velocity) + `SnowEngine` (sinusoidal drift, melt ellipses, bucketed render)
 
 </details>
 
@@ -608,9 +693,9 @@ impact.update(dt);
 </details>
 
 <details>
-<summary><strong>🎵 24. Audio Reactive VFX</strong> — <code>lite-audio-pool + lite-embers + lite-ease</code></summary>
+<summary><strong>🎵 24. Audio Reactive VFX</strong> — <code>lite-embers + Web Audio API</code></summary>
 
-Particles respond to audio frequency data. Low-frequency energy drives ember density and buoyancy — bass hits create eruptions.
+Particles respond to audio frequency data. Low-frequency energy drives ember density and buoyancy — bass hits create eruptions. Connects to any Web Audio source node and reads FFT bins directly via the platform's `AnalyserNode` — no audio-graph wrappers needed.
 
 ```javascript
 import { Recipes } from '@zakkster/lite-tools';
@@ -625,11 +710,137 @@ source.connect(audioCtx.destination);
 
 // In render loop
 reactive.update(dt, w, h);
+
+// On unmount: properly disconnects analyser + source from the audio graph
+reactive.destroy();
 ```
 
-**Composes:** `EmberEngine` (localized spawn + dynamic config) + Web Audio `AnalyserNode` (FFT) + `easeOutCubic`
+**Composes:** `EmberEngine` (localized spawn + dynamic buoyancy/density) + native Web Audio `AnalyserNode` (FFT, 256-bin)
 
 </details>
+
+### v2.1 Recipes — SpriteCache + FastBit32
+
+<details>
+<summary><strong>🗺️ 25. Tile Map Streamer</strong> — <code>lite-sprite-cache + lite-fastbit32</code></summary>
+
+Pannable tile map where chunks load and unload as they cross the viewport boundary. Each frame, FastBit32 XOR isolates *only* the chunks that changed state — stationary chunks are never re-checked. Mathematically O(k) on chunks-changed, not O(n) on chunks-visible. SpriteCache provides LRU eviction, URL deduplication, and ref-counted bitmap reuse.
+
+```javascript
+import { Recipes } from '@zakkster/lite-tools';
+
+const map = Recipes.tileMapStreamer(canvas, {
+    tileSize: 128,
+    gridCols: 8,
+    gridRows: 4,
+    tileUrl: (bit) => `/tiles/world_${bit}.png`,
+    maxMemoryMB: 100,
+});
+
+// Drive from camera or scroll position
+map.panTo(camera.x, camera.y);
+
+// In render loop
+map.render();
+
+// Stats: memoryMB, items in cache, pending loads
+console.log(map.stats); // { items: 12, memoryMB: '4.13', ... }
+```
+
+**Composes:** `SpriteCache` (LRU + ref-counted bitmaps + URL dedup) + `FastBit32` (XOR diffing + O(k) `forEach`)
+
+</details>
+
+<details>
+<summary><strong>📦 26. Asset Preloader</strong> — <code>lite-sprite-cache + lite-fastbit32</code></summary>
+
+Animated OKLCH loading screen. Each asset gets a bit; completion is `loadState.hasAll(totalMask)` — a single branch-free comparison. Progress is `loadState.count() / total` — O(1) Hamming weight, no array scan. Per-slot tick marks render directly off the bitmask, so the visual is bit-true to the load state.
+
+```javascript
+import { Recipes } from '@zakkster/lite-tools';
+
+const preload = Recipes.assetPreloader(canvas, [
+    { id: 'hero',  url: '/sprites/hero.png' },
+    { id: 'enemy', url: '/sprites/enemy.png' },
+    { id: 'tiles', url: '/sprites/tiles.png' },
+    { id: 'fx',    url: '/sprites/fx.png' },
+], {
+    brandColor: { l: 0.7, c: 0.22, h: 280 },
+    onComplete: () => startGame(preload),
+});
+
+// In render loop
+preload.render();
+
+// Pull cached bitmaps once ready
+const heroBmp = preload.getSprite('hero');
+```
+
+**Composes:** `SpriteCache.load` (parallel fetches with auto-dedup) + `BitMapper` (named slots) + `FastBit32` (popcount progress + `hasAll` completion)
+
+</details>
+
+<details>
+<summary><strong>💎 27. VRAM Sprite Pool</strong> — <code>lite-sprite-cache + lite-fastbit32</code></summary>
+
+Zero-allocation sprite swarm pinned to a single VRAM texture. Spawn finds free slots via O(1) `nextClearBit()` — **no allocations in the hot path**. Update + render iterate active bits via popcount-style traversal. Includes built-in gravity, wall/floor bounce, life decay, and rotation. Single shared `ImageBitmap`, ref-counted by `SpriteCache`.
+
+```javascript
+import { Recipes } from '@zakkster/lite-tools';
+
+const pool = Recipes.vramSpritePool(canvas, '/sprites/coin.png', {
+    maxSprites: 32,
+    gravity: 600,
+    bounce: 0.7,
+    lifeMs: 4000,
+    size: 48,
+});
+
+canvas.addEventListener('click', (e) => {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 200 + Math.random() * 300;
+    pool.spawn(e.offsetX, e.offsetY, Math.cos(angle) * speed, Math.sin(angle) * speed);
+});
+
+// In render loop
+pool.update(dt);
+pool.render();
+
+// Stats
+console.log(pool.count, '/', pool.capacity, pool.isFull ? '(FULL)' : '');
+```
+
+**Composes:** `SpriteCache` (single VRAM-pinned, ref-counted bitmap) + `FastBit32` (alloc-free `nextClearBit()` + bit-wise active iteration) + Float32Array SoA (positions, velocities, life)
+
+</details>
+
+#### How v2.1's two new packages collaborate
+
+```mermaid
+flowchart TD
+    classDef bit fill:#7c3aed,stroke:#fbbf24,color:#fff,stroke-width:2px
+    classDef cache fill:#06b6d4,stroke:#fff,color:#000,stroke-width:2px
+    classDef result fill:#10b981,stroke:#fff,color:#000,stroke-width:2px
+
+    A([Camera or click input]) --> B{What changed?}
+    B -- mask XOR --> C[FastBit32 · diff bits]:::bit
+    C -->|bit went 0 → 1| D[SpriteCache.load id, url]:::cache
+    C -->|bit went 1 → 0| E[SpriteCache.dispose id]:::cache
+    D --> F[ref-count++ · LRU touch]:::cache
+    E --> G{refs == 0?}:::cache
+    G -- yes --> H[bitmap.close · VRAM flushed]:::cache
+    G -- no --> I[ref-count-- · keep bitmap]:::cache
+
+    J([Render frame]) --> K[FastBit32 · forEach active]:::bit
+    K --> L[ctx.drawImage SpriteCache.get id]:::cache
+    L --> M([Frame complete]):::result
+
+    N([Spawn]) --> O[FastBit32.nextClearBit · O 1]:::bit
+    O -- slot found --> P[set Float32Array i = data]:::result
+    O -- all slots full --> Q([reject · pool full]):::result
+```
+
+
 
 ---
 
@@ -657,6 +868,10 @@ VFX ENGINES (1 dep: color)
   lite-fireworks, lite-sparks, lite-rain
   lite-snow, lite-embers, lite-smoke
 
+ASSETS & FLAGS (v2.1 — standalone)
+  lite-sprite-cache (LRU + ref-counting + dedup)
+  lite-fastbit32   (32-bit masks + popcount + BitMapper)
+
 INTERACTION
   lite-gesture ← pointer-tracker
   lite-pointer-tracker, lite-ticker, lite-viewport
@@ -673,7 +888,7 @@ HIGH-LEVEL COMPOSITES
 ALL COMPOSED INTO:
   ╔═══════════════════════════════════════╗
   ║  @zakkster/lite-tools (this package)  ║
-  ║  42 deps · 24 recipes · 1 install    ║
+  ║  44 deps · 27 recipes · 1 install     ║
   ╚═══════════════════════════════════════╝
 ```
 
@@ -761,6 +976,41 @@ v2 introduces a complete structural backbone for autonomous agents and procedura
 ## ⚠️ Breaking Changes
 * If you previously imported `FSM` from `@zakkster/lite-fsm`, you must now import it from the unscoped `lite-states` package (or simply grab it directly from the `@zakkster/lite-tools` barrel export).
 * `gameCanvas` recipe now properly integrates `lite-states` for strict `loading -> ready -> playing -> paused` lifecycle management.
+
+
+# ✨ @zakkster/lite-tools v2.1.0
+
+v2.1 introduces two foundational engine primitives — `SpriteCache` and `FastBit32` — and three new recipes (25–27) that demonstrate them composed together. These ship the same patterns AAA WebGL engines use, in plain Canvas2D.
+
+## 🆕 New micro-libraries
+
+### `@zakkster/lite-sprite-cache`
+AAA-grade off-thread asset manager.
+* **URL deduplication** — concurrent requests for the same URL share one in-flight Promise.
+* **Ref-counting** — same bitmap reused across multiple IDs without double-counting VRAM.
+* **LRU eviction** — soft memory cap with automatic oldest-asset disposal.
+* **Fetch timeouts + MIME validation** — hardened against hangs and malformed responses.
+* **Procedural pre-rendering** — bake canvas instructions into a static bitmap once, draw forever.
+* **Safari fallback** — graceful destruction path when `bitmap.close()` is unavailable.
+
+### `@zakkster/lite-fastbit32`
+Zero-GC, monomorphic 32-bit flag manager. Designed for ECS masks, object-pool slot tracking, and chunk-streaming diffs.
+* `add` / `remove` / `toggle` / `has` — single-bit ops in a single CPU cycle.
+* `count()` — O(1) loop-free Hamming-weight popcount.
+* `lowest()` / `highest()` / `nextClearBit()` — O(1) bit-scans for pool slot allocation.
+* `hasAll(mask)` / `hasAny(mask)` / `hasNone(mask)` — branch-free composite checks.
+* `forEach(cb)` — O(k) iteration that visits *only* active bits.
+* `BitMapper` — bidirectional name ↔ bit-index lookup for ECS-style flag systems.
+
+## 🍳 New recipes (25–27)
+
+* **`25. tileMapStreamer`** — Pannable tile world. FastBit32 XOR diff isolates *only* the chunks that crossed the viewport, then SpriteCache streams them in/out with LRU + dedup + ref-counting.
+* **`26. assetPreloader`** — Animated OKLCH loading screen. Completion is `loadState.hasAll(totalMask)` (one branch). Progress is `count() / total` (one popcount). Per-slot tick marks render bit-true.
+* **`27. vramSpritePool`** — Zero-allocation sprite swarm. `nextClearBit()` finds free slots in O(1) with no scratch buffers, no closures, no GC pressure. Built-in gravity + bounce + life decay.
+
+## 🚀 Why this matters
+
+Most JS sprite/asset libraries allocate scratch arrays in spawn hot paths, scan over inactive entries during update, and double-count memory when assets are shared. v2.1 fixes all three at the primitive level — you get AAA-engine architecture for the cost of one `npm install`.
 
 
 ## License

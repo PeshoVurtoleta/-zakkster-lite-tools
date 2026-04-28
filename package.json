@@ -1,7 +1,7 @@
 {
   "name": "@zakkster/lite-tools",
   "author": "Zahary Shinikchiev <shinikchiev@yahoo.com>",
-  "version": "2.0.20",
+  "version": "2.1.0",
   "sideEffects": false,
   "description": "The standard library for high-performance web presentation — 45+ micro-libraries, 24 recipes, zero-GC, deterministic, tree-shakeable.",
   "type": "module",
@@ -63,7 +63,9 @@
     "@zakkster/lite-rain": "^1.0.0",
     "@zakkster/lite-snow": "^1.0.0",
     "@zakkster/lite-embers": "^1.0.0",
-    "@zakkster/lite-smoke": "^1.0.0"
+    "@zakkster/lite-smoke": "^1.0.0",
+    "@zakkster/lite-sprite-cache": "^1.0.0",
+    "@zakkster/lite-fastbit32": "^1.0.0"
   },
   "homepage": "https://github.com/PeshoVurtoleta/lite-tools#readme",
   "repository": {
